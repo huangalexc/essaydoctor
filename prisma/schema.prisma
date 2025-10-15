@@ -4,13 +4,13 @@
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
-  previewFeatures = ["postgresqlExtensions"]
+  // previewFeatures = ["postgresqlExtensions"]  // Commented out - pgvector optional for now
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  extensions = [vector]
+  // extensions = [vector]  // Commented out - pgvector optional for now
 }
 
 // User roles
@@ -166,7 +166,7 @@ model SchoolMajorData {
   programDescription String  @db.Text
   keyFeatures       String[] // Array of key features
   keywords          String[] // Array of keywords for matching
-  embedding         Unsupported("vector(1536)")?  // For pgvector embeddings
+  // embedding         Unsupported("vector(1536)")?  // TODO: Add pgvector when available - using keyword matching for now
   sourceUrl         String?
   lastUpdated       DateTime @default(now())
   freshness         Boolean  @default(true) // Auto-set to false after 90 days

@@ -19,9 +19,13 @@ sudo apt-get install postgresql-15 postgresql-contrib-15
 #### Windows
 Download and install from [PostgreSQL official website](https://www.postgresql.org/download/windows/)
 
-### 2. Install pgvector Extension
+### 2. pgvector Extension (OPTIONAL)
 
-The application requires the pgvector extension for storing and querying AI embeddings.
+**NOTE**: pgvector is currently disabled in the schema and is NOT required for development.
+
+The application can optionally use the pgvector extension for semantic similarity search of school/major data. However, the current implementation uses keyword/feature matching instead, which works well without pgvector.
+
+If you want to enable pgvector in the future:
 
 #### macOS
 ```bash
@@ -36,6 +40,11 @@ make
 sudo make install
 ```
 
+Then uncomment the relevant lines in `schema.prisma`:
+- Line 7: `previewFeatures = ["postgresqlExtensions"]`
+- Line 13: `extensions = [vector]`
+- Line 169: `embedding` field in `SchoolMajorData` model
+
 ## Database Setup
 
 ### 1. Create Database
@@ -46,15 +55,6 @@ psql postgres
 
 # Create database
 CREATE DATABASE essaydoctor_dev;
-
-# Connect to the database
-\c essaydoctor_dev
-
-# Enable pgvector extension
-CREATE EXTENSION IF NOT EXISTS vector;
-
-# Verify installation
-\dx
 
 # Exit
 \q
@@ -136,16 +136,6 @@ npx prisma migrate reset
 ```
 
 ## Troubleshooting
-
-### pgvector Extension Not Found
-
-If you get an error about the vector extension:
-
-1. Ensure pgvector is installed (see installation steps above)
-2. Connect to your database and manually enable it:
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS vector;
-   ```
 
 ### Connection Issues
 
