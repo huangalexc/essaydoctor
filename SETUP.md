@@ -5,9 +5,10 @@ This guide will help you set up the College Essay Doctor MVP development environ
 ## Prerequisites
 
 - **Node.js** 20+ and npm
-- **PostgreSQL** 15+ with pgvector extension
-- **Redis** (for caching)
+- **PostgreSQL** 15+ (pgvector is optional for development)
+- **Redis** (optional - for caching and rate limiting)
 - **Git**
+- **OpenAI API Key** (for AI essay feedback)
 
 ## Quick Start
 
@@ -24,11 +25,11 @@ npm install
 
 ### 2. Database Setup
 
-#### Install PostgreSQL with pgvector
+#### Install PostgreSQL
 
 **macOS:**
 ```bash
-brew install postgresql@15 pgvector
+brew install postgresql@15
 brew services start postgresql@15
 ```
 
@@ -36,7 +37,7 @@ brew services start postgresql@15
 ```bash
 sudo apt-get update
 sudo apt-get install postgresql-15 postgresql-contrib-15
-# Install pgvector from source (see prisma/README.md)
+sudo systemctl start postgresql
 ```
 
 #### Create Database
@@ -48,19 +49,21 @@ psql postgres
 # Create database
 CREATE DATABASE essaydoctor_dev;
 
-# Connect to the database
-\c essaydoctor_dev
-
-# Enable pgvector extension
-CREATE EXTENSION IF NOT EXISTS vector;
-
 # Exit
 \q
 ```
 
+**Note**: pgvector is currently disabled in the schema for easier development. School customization uses keyword matching instead of semantic embeddings. To enable pgvector later, see `prisma/README.md`.
+
 ### 3. Configure Environment Variables
 
-Copy the `.env` file and update with your credentials:
+Copy `.env.example` to `.env` and update with your credentials:
+
+```bash
+cp .env.example .env
+```
+
+**Minimum required variables** for basic functionality:
 
 ```bash
 # Database
@@ -261,12 +264,14 @@ sudo systemctl status postgresql  # Linux
 psql -U postgres -d essaydoctor_dev
 ```
 
-### pgvector Extension Not Found
+### Missing Environment Variables
 
-```sql
--- Manually enable in psql
-\c essaydoctor_dev
-CREATE EXTENSION IF NOT EXISTS vector;
+```bash
+# Check which variables are missing
+cat .env
+
+# Compare with .env.example
+diff .env .env.example
 ```
 
 ### Prisma Client Generation Errors

@@ -1,8 +1,8 @@
 # College Essay Doctor MVP - Development Progress
 
 **Last Updated**: 2025-10-15
-**Current Sprint**: Week 1-2 (Infrastructure & Core UI)
-**Completion**: ~55% of MVP (50/90 tasks from [tasks.json](.taskmaster/tasks.json))
+**Current Sprint**: Week 2 (Backend API Completion)
+**Completion**: ~62% of MVP (56/90 tasks from [tasks.json](.taskmaster/tasks.json))
 
 ## 📊 Overview
 
@@ -37,7 +37,7 @@ This document tracks the development progress of the College Essay Doctor MVP ag
 - [ ] **INFRA-004**: AWS Infrastructure (Week 11-12)
 - [ ] **INFRA-005**: Docker Containerization (Week 3)
 
-### Track 2: Authentication & User Management (AUTH) - 40% Complete
+### Track 2: Authentication & User Management (AUTH) - 80% Complete
 
 - [x] **AUTH-001**: JWT Authentication System ✅
   - NextAuth v5 with JWT strategy
@@ -47,7 +47,7 @@ This document tracks the development progress of the College Essay Doctor MVP ag
   - 30-day session management
   - Middleware for route protection
 
-- [x] **AUTH-002**: User Registration (Partial) ✅
+- [x] **AUTH-002**: User Registration ✅
   - POST /api/auth/register endpoint
   - Email/password validation (Zod schema)
   - Password hashing with bcrypt
@@ -55,9 +55,29 @@ This document tracks the development progress of the College Essay Doctor MVP ag
   - Email verification token generation
   - Input validation and error handling
 
-- [ ] **AUTH-003**: Login System with Security Features (In Progress)
+- [x] **AUTH-003**: Login System ✅
+  - Login page with email/password
+  - Google OAuth button
+  - Remember me functionality
+  - Error handling and validation
+
+- [x] **AUTH-005**: Password Reset Flow ✅
+  - POST /api/auth/forgot-password endpoint
+  - POST /api/auth/reset-password endpoint
+  - Forgot password page UI
+  - Reset password page UI with strength indicator
+  - 1-hour token expiration
+  - Email enumeration protection
+  - Strong password requirements
+
+- [x] **AUTH-006**: User Profile Management ✅
+  - GET /api/user/profile endpoint
+  - PUT /api/user/profile endpoint
+  - Settings page UI
+  - Email change with re-verification
+  - Profile update functionality
+
 - [ ] **AUTH-004**: Google OAuth Integration (Config Ready)
-- [ ] **AUTH-005**: Password Reset Flow (Partial)
 
 ### Track 3: AI Integration & Core Editing (AI) - 40% Complete
 
@@ -329,23 +349,23 @@ Before running the application:
 ## 📈 Progress Metrics
 
 - **Total Tasks**: 90
-- **Completed**: 50 (56%)
-- **In Progress**: 4 (4%)
-- **Pending**: 36 (40%)
-- **Estimated Hours Completed**: ~245 hours
-- **Estimated Hours Remaining**: ~207 hours
+- **Completed**: 56 (62%)
+- **In Progress**: 2 (2%)
+- **Pending**: 32 (36%)
+- **Estimated Hours Completed**: ~275 hours
+- **Estimated Hours Remaining**: ~177 hours
 
 ### By Track
 
 | Track | Completed | Total | % |
 |-------|-----------|-------|---|
 | Infrastructure | 3 | 5 | 60% |
-| Authentication | 3 | 5 | 60% |
+| Authentication | 4 | 5 | 80% |
 | AI Integration | 2 | 5 | 40% |
 | School Auto-Pull | 0 | 8 | 0% |
 | Draft Management | 0 | 6 | 0% |
 | Tier Management | 0 | 5 | 0% |
-| Frontend UI | 9 | 10 | 90% |
+| Frontend UI | 10 | 10 | **100%** ✅ |
 | Testing | 0 | 7 | 0% |
 | Security | 0 | 5 | 0% |
 | Deployment | 0 | 5 | 0% |
@@ -421,15 +441,22 @@ npm run build
    - Save functionality
    - Word count tracking
 
+9. **Password Reset & User Profile** (Commit 9)
+   - Forgot password API and UI
+   - Reset password API and UI with strength indicator
+   - User profile GET/PUT endpoints
+   - Email change with re-verification
+   - Token expiration and cleanup
+
 ## 🔜 Next Steps
 
-1. Implement draft CRUD API endpoints (DRAFT-001 through DRAFT-006)
-2. Complete essay editing API endpoint (AI-003)
+1. **CRITICAL**: Set up database instance and run migrations
+2. **CRITICAL**: Create `.env` file with required environment variables
 3. Build school search/data endpoints (SCHOOL-004, SCHOOL-005)
 4. Create school selector modal (FE-006)
-5. Set up database instance and run migrations
-6. Add password reset flow (AUTH-005)
-7. Implement Google OAuth (AUTH-004)
+5. Implement Google OAuth (AUTH-004)
+6. Add Stripe subscription integration (TIER-001 through TIER-005)
+7. Set up testing infrastructure (TEST-001)
 8. Set up Docker for development (INFRA-005)
 
 ---
