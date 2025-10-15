@@ -1,0 +1,183 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// User roles
+enum UserRole {
+  ADMIN
+  MEMBER
+}
+
+// Subscription tiers
+enum SubscriptionTier {
+  FREE
+  PLUS
+  PRO
+}
+
+// Subscription status
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+// Draft tags
+enum DraftTag {
+  IN_PROGRESS
+  FINAL
+  REVIEW
+  ARCHIVED
+}
+
+// ============ USER & AUTH MODELS ============
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  hashedPassword String?
+  role          UserRole  @default(MEMBER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  subscription  Subscription?
+  drafts        Draft[]
+  usageTracking UsageTracking[]
+  tokens        Token[]
+
+  @@map("users")
+}
+
+model Token {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  type      String   // EMAIL_VERIFY, PASSWORD_RESET
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("tokens")
+}
+
+// ============ SUBSCRIPTION & TIER MODELS ============
+
+model Subscription {
+  id              String             @id @default(cuid())
+  userId          String             @unique
+  tier            SubscriptionTier   @default(FREE)
+  status          SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId String?           @unique
+  stripeSubscriptionId String?       @unique
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean         @default(false)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@map("subscriptions")
+}
+
+model UsageTracking {
+  id                    String   @id @default(cuid())
+  userId                String
+  aiEditsCount          Int      @default(0)
+  customizationsCount   Int      @default(0)
+  schoolFetchesCount    Int      @default(0)
+  periodStart           DateTime @default(now())
+  periodEnd             DateTime
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@map("usage_tracking")
+}
+
+// ============ DRAFT MODELS ============
+
+model Draft {
+  id           String    @id @default(cuid())
+  userId       String
+  name         String?
+  promptText   String?   @db.Text
+  content      String    @db.Text
+  wordCount    Int
+  tag          DraftTag  @default(IN_PROGRESS)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions  DraftVersion[]
+
+  @@index([userId])
+  @@index([tag])
+  @@index([createdAt])
+  @@map("drafts")
+}
+
+model DraftVersion {
+  id           String   @id @default(cuid())
+  draftId      String
+  content      String   @db.Text
+  versionNumber Int
+  changes      String?  @db.Text // JSON description of changes
+  createdAt    DateTime @default(now())
+
+  draft Draft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@unique([draftId, versionNumber])
+  @@index([draftId])
+  @@index([createdAt])
+  @@map("draft_versions")
+}
+
+// ============ SCHOOL KNOWLEDGE MODELS ============
+
+model SchoolMajorData {
+  id                String   @id @default(cuid())
+  schoolName        String
+  majorName         String
+  programDescription String  @db.Text
+  keyFeatures       String[] // Array of key features
+  keywords          String[] // Array of keywords for matching
+  embedding         Unsupported("vector(1536)")?  // For pgvector embeddings
+  sourceUrl         String?
+  lastUpdated       DateTime @default(now())
+  freshness         Boolean  @default(true) // Auto-set to false after 90 days
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([schoolName, majorName])
+  @@index([schoolName])
+  @@index([majorName])
+  @@index([schoolName, majorName])
+  @@index([lastUpdated])
+  @@index([freshness])
+  @@map("school_major_data")
+}

@@ -1,0 +1,215 @@
+# College Essay Doctor MVP - API Specification for School Knowledge Auto-Pull
+
+---
+
+### 1. overview
+
+This section provides a full API specification for the **School Knowledge Auto-Pull** feature in the College Essay Doctor MVP. This API is responsible for retrieving, storing, and serving school- and major-specific information for essay customization. It supports caching to avoid redundant calls and allows freshness-based updates. The specification is designed for a RESTful architecture with JSON payloads.
+
+---
+
+### 2. authentication
+
+**Method:** JWT Bearer token in `Authorization` header  
+**Header example:**
+```http
+Authorization: Bearer <JWT_TOKEN>```
+** Tokens are generated upon successful user login.
+
+---
+
+### 3. endpoints
+
+#### 3.1 Check school/major data status
+
+**GET /api/schools/status**
+
+**Description:** Check if a `(school, major)` pair exists in the database and whether it is fresh.
+
+**Query parameters:**
+
+| Parameter | Type   | Required | Description |
+|-----------|--------|----------|-------------|
+| school    | string | Yes      | Official school name |
+| major     | string | Yes      | Intended major/program |
+
+**Response (200 OK):**
+```json
+{
+  "school": "Stanford University",
+  "major": "Computer Science",
+  "exists": true,
+  "is_fresh": false,
+  "last_updated": "2025-05-01T12:34:56Z"
+}
+```
+#### 3.1 Retrieve school/major data
+
+** GET /api/schools/data
+
+**Description:** Returns stored data for a given school/major. If data is stale or missing, returns null.
+
+**Query parameters:**
+Same as /status
+
+**Response (200 OK):**
+```json
+{
+  "school": "Stanford University",
+  "major": "Computer Science",
+  "data": {
+    "description": "Stanford CS program emphasizes AI, systems, and human-computer interaction...",
+    "keywords": ["AI", "systems", "HCI"],
+    "website": "https://cs.stanford.edu",
+    "admissions_info": "Highly selective; early action recommended",
+    "extra_notes": "Top research labs in robotics and machine learning"
+  },
+  "last_updated": "2025-05-01T12:34:56Z"
+}
+```
+
+**Response (404 Not Found):**
+```
+{
+  "error": "School/major combination not found"
+}
+```
+
+#### 3.3 Trigger school knowledge auto-pull
+
+**POST /api/schools/fetch**
+
+**Description:** Fetches and stores fresh school/major data if missing or stale.
+
+**Request body:**
+```json
+{
+  "school": "Stanford University",
+  "major": "Computer Science",
+  "force_refresh": false
+}
+```
+
+**Behavior:**
+  - Checks DB: if exists & fresh and force_refresh=false, returns existing record.
+  - If missing or stale, calls AI summarization + scraping pipeline.
+  - Stores structured data in DB with last_updated timestamp.
+
+**Response (200 OK):**
+```json
+{
+  "school": "Stanford University",
+  "major": "Computer Science",
+  "data": {
+    "description": "...",
+    "keywords": [...],
+    "website": "...",
+    "admissions_info": "...",
+    "extra_notes": "..."
+  },
+  "last_updated": "2025-08-14T10:12:45Z",
+  "status": "fetched"
+}
+```
+
+**Response (500 Internal Server Error):**
+```json
+{
+  "error": "Failed to fetch data due to external API or scraping error"
+}
+```
+
+#### 3.4 Delete school/major data (admin only)
+
+**DELETE /api/schools/data**
+
+**Description:** Remove a specific school/major record from DB. Admin access required.
+
+**Request body:**
+```json
+{
+  "school": "Stanford University",
+  "major": "Computer Science"
+}
+
+**Response (200 OK):**
+```json
+{
+  "status": "deleted"
+}
+```
+
+**Response (403 Forbidden):**
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+---
+
+### 4. data model
+
+**Table: school_major_data**
+
+| Column         | Type         | Description |
+|----------------|--------------|-------------|
+| id             | UUID         | Primary key |
+| school_name    | TEXT         | Official school name |
+| major_name     | TEXT         | Intended major/program |
+| description    | TEXT         | AI-summarized program description |
+| keywords       | JSONB        | List of key phrases extracted |
+| website        | TEXT         | Official program/department URL |
+| admissions_info| TEXT         | Notes on selectivity, deadlines |
+| extra_notes    | TEXT         | Any additional relevant info |
+| last_updated   | TIMESTAMP    | Last fetch or refresh timestamp |
+
+**Indexes:**
+- Composite index on `(school_name, major_name)` for fast lookup.
+
+---
+
+### 5. caching and freshness
+
+- Default freshness threshold: **90 days**.  
+- If `last_updated > 90 days`, consider stale and trigger auto-pull.  
+- Optional `force_refresh=true` overrides freshness check.
+
+**Redis caching:**  
+- Cache results of GET `/data` for **1 hour** to reduce DB load.  
+- Cache key format: `school_major:<school_name>:<major_name>`.
+
+---
+
+### 6. error handling
+
+- **404** for missing school/major data in retrieval requests.  
+- **400** for invalid input (e.g., empty `school` or `major`).  
+- **500** for internal errors (AI API failure, scraping errors).  
+- All errors return JSON with an `error` key and descriptive message.
+
+---
+
+### 7. rate limiting
+
+- **Free tier:** 10 fetches per month.  
+- **Paid tier:** 100 fetches per month.  
+- Exceeding limit returns 429 Too Many Requests with JSON:
+```json
+{
+  "error": "Rate limit exceeded. Upgrade to paid tier for additional fetches."
+}
+
+---
+
+### 8. sequence flow for customization
+
+ - 1. User selects school and major in UI.
+
+ - 2. Frontend calls /api/schools/status → receives exists and is_fresh.
+
+ - 3. If missing/stale, call /api/schools/fetch.
+
+ - 4. Once data is available, call /api/schools/data to get structured info.
+
+ - 5. AI editor uses retrieved data to inject relevant details into the essay draft.

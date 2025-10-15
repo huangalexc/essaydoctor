@@ -1,0 +1,166 @@
+# College Essay Doctor MVP - Product Requirements Document (PRD)
+
+---
+
+## 1. introduction
+
+This document defines the product requirements for the Minimum Viable Product (MVP) of **College Essay Doctor**, an AI-powered web application designed to assist students in drafting, editing, and customizing college application essays. The purpose of this PRD is to provide a clear, actionable blueprint for the development team to build and deliver an initial release with a limited set of high-leverage, low-complexity features—most notably, the **school knowledge auto-pull** capability—while establishing a scalable foundation for future enhancements. This PRD also outlines the proposed pricing model.
+
+---
+
+## 2. product overview
+
+College Essay Doctor leverages AI to help students write compelling, tailored college essays. Students can upload prompts and drafts, receive AI-driven edits based on proven essay principles, and automatically customize essays for specific schools and intended majors. A key differentiator in the MVP is the **school knowledge auto-pull** feature, which retrieves, processes, and stores relevant information about a school and major combination to personalize essays efficiently.
+
+The MVP will be **web-first**, with a responsive design for mobile access but no dedicated mobile app at launch. This ensures optimal writing and editing usability while maintaining low development complexity.
+
+---
+
+## 3. goals and objectives
+
+**Primary goals:**
+- Provide students with AI-assisted editing tools that apply established essay-writing principles.
+- Enable automated essay customization for specific schools/majors via school knowledge auto-pull.
+- Deliver a clean, intuitive interface for managing prompts, drafts, and school selections.
+- Introduce a free tier that demonstrates value while incentivizing upgrades to paid plans.
+
+**Objectives:**
+- Achieve a fully functional MVP within 12 weeks of development.
+- Support up to **5,000 monthly active users** in the initial deployment.
+- Maintain average AI response times under **5 seconds** for edit requests.
+- Achieve a free-to-paid conversion rate target of **8–12%**.
+
+---
+
+## 4. target audience
+
+**Primary users:**
+- High school juniors and seniors applying to colleges.
+- College transfer applicants.
+- Parents and guardians assisting in the application process.
+- Independent college counselors.
+
+**Secondary users:**
+- High school counselors who may recommend the tool.
+- Scholarship applicants.
+
+---
+
+## 5. features and requirements
+
+### 5.1 core mvp features
+1. **Prompt input and draft upload**
+   - Paste prompt text or upload Word/Google Docs.
+   - Optional manual entry of subpoints/outlines.
+
+2. **AI essay editing**
+   - Apply 10 core essay principles (hook, show-don’t-tell, etc.).
+   - Offer inline comments or complete rewrites.
+
+3. **Draft management**
+   - Save, tag, and organize drafts (“In Progress,” “Final”).
+   - Basic version history.
+
+4. **School knowledge auto-pull**
+   - When `(school, major)` is not found or stale in DB, retrieve and summarize official information.
+   - Store for reuse within freshness threshold (default 90 days).
+
+5. **School-based customization**
+   - Use stored school/major data to inject relevant program details into essays.
+
+6. **Free vs paid tier gating**
+   - Free: 1–2 AI edits/month, 1 school customization/month, 2 drafts stored.
+   - Paid: Unlimited edits, up to 10 school customizations/month, full draft library.
+
+7. **User authentication**
+   - Secure account creation with email/password or Google OAuth.
+
+---
+
+## 6. user stories and acceptance criteria
+
+| ID     | User Story | Acceptance Criteria |
+|--------|------------|---------------------|
+| ST-101 | As a user, I want to create an account so I can save and access my drafts. | User can sign up with email/password or Google OAuth; must receive a verification email before first login. |
+| ST-102 | As a user, I want to log in securely so only I can access my account. | Login requires correct credentials; password encryption in DB; lockout after 5 failed attempts. |
+| ST-103 | As a user, I want to input or upload a prompt so the AI can analyze it. | System accepts pasted text or .docx file; displays prompt in editor. |
+| ST-104 | As a user, I want to upload or paste a draft for editing. | System accepts up to 5,000 words in free tier; displays it for editing. |
+| ST-105 | As a user, I want the AI to give feedback based on essay principles. | AI output includes actionable comments; each principle addressed at least once. |
+| ST-106 | As a user, I want to save multiple drafts with tags. | User can name and tag drafts; max 2 stored in free tier; unlimited in paid. |
+| ST-107 | As a user, I want to select a school and major for customization. | System checks DB for school/major pair; if missing/stale, triggers auto-pull. |
+| ST-108 | As a user, I want the app to personalize my essay with relevant school/major info. | Customization includes at least 2 program-specific details; grammar preserved. |
+| ST-109 | As a system, I want to store school/major data to avoid redundant pulls. | DB stores structured/unstructured data with `last_updated` timestamp. |
+| ST-110 | As a user, I want to see if a feature is locked in the free tier. | Locked features show upgrade prompt and pricing info. |
+| ST-111 | As a developer, I want the database schema to support version control for drafts. | DB includes table with draft ID, user ID, version timestamp, and content. |
+
+---
+
+## 7. technical requirements / stack
+
+**Frontend:**
+- React.js with TailwindCSS for styling
+- Responsive design for desktop and mobile browsers
+
+**Backend:**
+- Node.js (Express) for API handling
+- PostgreSQL with `pgvector` extension for storing embeddings
+- Redis for caching API responses
+
+**AI integration:**
+- OpenAI GPT-4/GPT-5 API for summarization, editing, and customization
+- OpenAI `text-embedding-3-large` for storing semantic vectors of school/major data
+
+**Data retrieval:**
+- Bing Search API or SerpAPI for finding official school program pages
+- Playwright for scraping relevant content
+
+**Infrastructure:**
+- AWS (EC2 for backend, RDS for PostgreSQL, S3 for file storage)
+- Docker for containerization
+
+**Security:**
+- JWT authentication for API requests
+- Encrypted password storage (bcrypt)
+- HTTPS everywhere
+
+---
+
+## 8. design and user interface
+
+**Key UI principles:**
+- Minimalist, distraction-free writing environment.
+- Split-screen editor: left panel for prompt, center for essay draft, right panel for AI feedback.
+- Clear tier indicators: free vs. paid features visually distinct.
+- Simple school selection modal with search and checkbox selection.
+- Upgrade prompts designed to show value before blocking.
+
+**Initial pages:**
+1. **Landing page:** Brief product pitch, CTA to sign up.
+2. **Dashboard:** List of saved drafts, prompts, and schools.
+3. **Editor view:** Prompt pane, draft pane, AI suggestions pane.
+4. **School selector:** Search bar, checkbox list, auto-pull status indicator.
+5. **Pricing/upgrade page:** Feature comparison chart and payment processing.
+
+---
+
+## 9. pricing model
+
+**Free tier:**
+- 1–2 AI edits per month
+- 1 school customization per month
+- Store up to 2 drafts
+- Basic grammar/style feedback
+
+**Plus plan ($12/month or $99/year):**
+- Unlimited AI edits
+- Up to 10 school customizations/month
+- Unlimited draft storage
+- Priority AI processing
+
+**Pro plan ($29/month or $249/year):**
+- Unlimited edits and school customizations
+- Advanced analytics (tone/cliché detection)
+- Collaboration mode for counselor/parent review
+- Export to multiple formats (PDF, DOCX)
+
+---

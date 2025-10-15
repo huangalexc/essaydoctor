@@ -1,0 +1,1262 @@
+{
+  "project": {
+    "name": "College Essay Doctor MVP",
+    "description": "AI-powered web application for college essay drafting, editing, and school-specific customization",
+    "timeline": "12 weeks",
+    "target_users": 5000,
+    "performance_target": "< 5 seconds AI response time"
+  },
+  "tracks": [
+    {
+      "id": "track-1",
+      "name": "Infrastructure & Database Setup",
+      "description": "Foundation layer - database, authentication, and core infrastructure",
+      "dependencies": [],
+      "tasks": [
+        {
+          "id": "INFRA-001",
+          "title": "Set up PostgreSQL database with pgvector extension",
+          "description": "Configure PostgreSQL instance with pgvector for embeddings storage",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 4,
+          "subtasks": [
+            "Install PostgreSQL 15+",
+            "Install and configure pgvector extension",
+            "Set up database user and permissions",
+            "Configure connection pooling",
+            "Test vector operations"
+          ]
+        },
+        {
+          "id": "INFRA-002",
+          "title": "Design and implement database schema",
+          "description": "Create all tables per PRD requirements including users, drafts, schools, and version control",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 8,
+          "dependencies": ["INFRA-001"],
+          "subtasks": [
+            "Create users table with role support (ADMIN/MEMBER)",
+            "Create drafts table with versioning support",
+            "Create school_major_data table per API spec",
+            "Create usage_tracking table for tier limits",
+            "Create subscriptions table for pricing tiers",
+            "Add composite indexes for (school_name, major_name)",
+            "Add timestamp indexes for freshness queries",
+            "Write migration scripts",
+            "Seed initial test data"
+          ]
+        },
+        {
+          "id": "INFRA-003",
+          "title": "Set up Redis for caching",
+          "description": "Configure Redis for API response caching and rate limiting",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 3,
+          "subtasks": [
+            "Install Redis server",
+            "Configure Redis connection",
+            "Set up cache key strategies",
+            "Implement TTL policies (1 hour for school data)",
+            "Test cache hit/miss scenarios"
+          ]
+        },
+        {
+          "id": "INFRA-004",
+          "title": "Set up AWS infrastructure",
+          "description": "Configure EC2, RDS, and S3 for production deployment",
+          "priority": "medium",
+          "status": "pending",
+          "estimated_hours": 6,
+          "subtasks": [
+            "Provision EC2 instance",
+            "Set up RDS PostgreSQL",
+            "Configure S3 bucket for file storage",
+            "Set up security groups and VPC",
+            "Configure SSL/TLS certificates",
+            "Set up environment variables management"
+          ]
+        },
+        {
+          "id": "INFRA-005",
+          "title": "Docker containerization",
+          "description": "Create Docker configuration for development and production",
+          "priority": "medium",
+          "status": "pending",
+          "estimated_hours": 4,
+          "subtasks": [
+            "Create Dockerfile for backend",
+            "Create Dockerfile for frontend",
+            "Create docker-compose.yml for local development",
+            "Configure multi-stage builds for optimization",
+            "Test container builds and deployments"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "track-2",
+      "name": "Authentication & User Management",
+      "description": "User authentication, authorization, and account management",
+      "dependencies": ["INFRA-002"],
+      "tasks": [
+        {
+          "id": "AUTH-001",
+          "title": "Implement JWT authentication system",
+          "description": "Build secure JWT-based authentication with token management",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 6,
+          "subtasks": [
+            "Set up JWT token generation and verification",
+            "Implement token refresh mechanism",
+            "Create authentication middleware",
+            "Add token blacklisting for logout",
+            "Implement session management"
+          ]
+        },
+        {
+          "id": "AUTH-002",
+          "title": "Build email/password registration flow",
+          "description": "User registration with email verification (ST-101)",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 5,
+          "dependencies": ["AUTH-001"],
+          "subtasks": [
+            "Create registration endpoint",
+            "Implement password hashing with bcrypt",
+            "Build email verification system",
+            "Create verification token generation",
+            "Send verification email",
+            "Implement verification endpoint"
+          ]
+        },
+        {
+          "id": "AUTH-003",
+          "title": "Build login system with security features",
+          "description": "Secure login with rate limiting and lockout (ST-102)",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 4,
+          "dependencies": ["AUTH-001"],
+          "subtasks": [
+            "Create login endpoint",
+            "Implement credential validation",
+            "Add failed login tracking",
+            "Implement account lockout after 5 failed attempts",
+            "Add rate limiting per IP"
+          ]
+        },
+        {
+          "id": "AUTH-004",
+          "title": "Implement Google OAuth integration",
+          "description": "Add Google OAuth as alternative login method (ST-101)",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 5,
+          "dependencies": ["AUTH-001"],
+          "subtasks": [
+            "Set up Google OAuth credentials",
+            "Implement OAuth callback handler",
+            "Link OAuth accounts to user records",
+            "Handle first-time OAuth users",
+            "Test OAuth flow end-to-end"
+          ]
+        },
+        {
+          "id": "AUTH-005",
+          "title": "Build password reset flow",
+          "description": "Secure password reset with email token",
+          "priority": "medium",
+          "status": "pending",
+          "estimated_hours": 4,
+          "dependencies": ["AUTH-001"],
+          "subtasks": [
+            "Create forgot password endpoint",
+            "Generate secure reset tokens",
+            "Send reset email",
+            "Create reset password endpoint",
+            "Add token expiration (24 hours)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "track-3",
+      "name": "AI Integration & Core Editing",
+      "description": "OpenAI integration, essay editing, and AI-powered features",
+      "dependencies": ["INFRA-002"],
+      "tasks": [
+        {
+          "id": "AI-001",
+          "title": "Set up OpenAI API integration",
+          "description": "Configure OpenAI GPT-4/5 and embedding APIs",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 3,
+          "subtasks": [
+            "Set up OpenAI API credentials",
+            "Create API client wrapper",
+            "Implement error handling and retries",
+            "Add rate limiting and quota management",
+            "Test API connectivity"
+          ]
+        },
+        {
+          "id": "AI-002",
+          "title": "Implement essay principles framework",
+          "description": "Define and implement 10 core essay editing principles (ST-105)",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 8,
+          "dependencies": ["AI-001"],
+          "subtasks": [
+            "Define all 10 essay principles (hook, show-don't-tell, etc.)",
+            "Create principle-specific prompts",
+            "Build principle evaluation logic",
+            "Implement feedback generation for each principle",
+            "Test principle detection accuracy"
+          ]
+        },
+        {
+          "id": "AI-003",
+          "title": "Build AI essay editing endpoint",
+          "description": "Core essay analysis and feedback generation (ST-105)",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 10,
+          "dependencies": ["AI-002"],
+          "subtasks": [
+            "Create /api/essays/edit endpoint",
+            "Implement essay chunking for long texts",
+            "Build prompt construction for GPT",
+            "Parse and structure AI feedback",
+            "Add inline comment generation",
+            "Implement complete rewrite option",
+            "Ensure < 5 second response time",
+            "Add error handling for API failures"
+          ]
+        },
+        {
+          "id": "AI-004",
+          "title": "Implement text embedding generation",
+          "description": "Generate and store embeddings for school/major data",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 5,
+          "dependencies": ["AI-001"],
+          "subtasks": [
+            "Integrate text-embedding-3-large model",
+            "Create embedding generation function",
+            "Store embeddings in pgvector",
+            "Build similarity search functionality",
+            "Test embedding quality and retrieval"
+          ]
+        },
+        {
+          "id": "AI-005",
+          "title": "Build essay customization engine",
+          "description": "AI-powered school/major-specific essay customization (ST-108)",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 10,
+          "dependencies": ["AI-003", "SCHOOL-002"],
+          "subtasks": [
+            "Create /api/essays/customize endpoint",
+            "Build prompt with school/major context",
+            "Inject at least 2 program-specific details",
+            "Preserve original grammar and tone",
+            "Maintain essay structure and flow",
+            "Add validation for customization quality",
+            "Test with various school/major combinations"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "track-4",
+      "name": "School Knowledge Auto-Pull System",
+      "description": "School/major data retrieval, storage, and management",
+      "dependencies": ["INFRA-002", "AI-004"],
+      "tasks": [
+        {
+          "id": "SCHOOL-001",
+          "title": "Implement search API integration",
+          "description": "Set up Bing Search API or SerpAPI for finding school pages",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 4,
+          "subtasks": [
+            "Choose between Bing Search and SerpAPI",
+            "Set up API credentials",
+            "Create search query builder",
+            "Implement result parsing",
+            "Filter for official school domains",
+            "Test search accuracy for various schools"
+          ]
+        },
+        {
+          "id": "SCHOOL-002",
+          "title": "Build web scraping pipeline with Playwright",
+          "description": "Extract relevant content from school program pages",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 8,
+          "dependencies": ["SCHOOL-001"],
+          "subtasks": [
+            "Set up Playwright browser automation",
+            "Create page content extraction logic",
+            "Handle dynamic JavaScript content",
+            "Extract program descriptions and details",
+            "Clean and normalize scraped content",
+            "Handle rate limiting and timeouts",
+            "Test with top 50 universities"
+          ]
+        },
+        {
+          "id": "SCHOOL-003",
+          "title": "Build AI summarization pipeline",
+          "description": "Process and summarize scraped school/major data",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 6,
+          "dependencies": ["SCHOOL-002", "AI-001"],
+          "subtasks": [
+            "Create summarization prompts",
+            "Extract key program features",
+            "Generate keyword lists",
+            "Structure data per API spec format",
+            "Validate output quality",
+            "Test with diverse program types"
+          ]
+        },
+        {
+          "id": "SCHOOL-004",
+          "title": "Implement GET /api/schools/status endpoint",
+          "description": "Check if school/major data exists and is fresh",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 3,
+          "dependencies": ["INFRA-002"],
+          "subtasks": [
+            "Create endpoint handler",
+            "Query database for school/major pair",
+            "Check freshness (90-day threshold)",
+            "Return JSON response per spec",
+            "Add input validation",
+            "Test with various scenarios"
+          ]
+        },
+        {
+          "id": "SCHOOL-005",
+          "title": "Implement GET /api/schools/data endpoint",
+          "description": "Retrieve stored school/major data with caching",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 4,
+          "dependencies": ["SCHOOL-004", "INFRA-003"],
+          "subtasks": [
+            "Create endpoint handler",
+            "Implement Redis caching (1-hour TTL)",
+            "Query database if cache miss",
+            "Return structured data per spec",
+            "Handle 404 for missing data",
+            "Test cache hit/miss scenarios"
+          ]
+        },
+        {
+          "id": "SCHOOL-006",
+          "title": "Implement POST /api/schools/fetch endpoint",
+          "description": "Trigger school knowledge auto-pull (ST-109)",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 10,
+          "dependencies": ["SCHOOL-003", "SCHOOL-004"],
+          "subtasks": [
+            "Create endpoint handler",
+            "Check DB for existing fresh data",
+            "Trigger search + scrape + summarize pipeline",
+            "Store structured data in database",
+            "Update last_updated timestamp",
+            "Invalidate Redis cache",
+            "Handle force_refresh parameter",
+            "Add comprehensive error handling",
+            "Return JSON response per spec"
+          ]
+        },
+        {
+          "id": "SCHOOL-007",
+          "title": "Implement DELETE /api/schools/data endpoint",
+          "description": "Admin-only school data deletion",
+          "priority": "low",
+          "status": "pending",
+          "estimated_hours": 2,
+          "dependencies": ["SCHOOL-004", "AUTH-001"],
+          "subtasks": [
+            "Create endpoint handler",
+            "Add admin role verification",
+            "Delete from database",
+            "Invalidate Redis cache",
+            "Return appropriate responses (200/403)"
+          ]
+        },
+        {
+          "id": "SCHOOL-008",
+          "title": "Implement freshness and caching logic",
+          "description": "Automated stale data detection and cache management",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 4,
+          "dependencies": ["SCHOOL-005"],
+          "subtasks": [
+            "Create freshness checking function (90 days)",
+            "Build cache key generation",
+            "Implement cache invalidation strategies",
+            "Add background job for stale data cleanup",
+            "Test cache performance"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "track-5",
+      "name": "Draft Management System",
+      "description": "Essay draft storage, versioning, and organization",
+      "dependencies": ["INFRA-002", "AUTH-001"],
+      "tasks": [
+        {
+          "id": "DRAFT-001",
+          "title": "Implement prompt upload endpoint",
+          "description": "Accept pasted text or .docx uploads (ST-103)",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 5,
+          "subtasks": [
+            "Create /api/prompts/upload endpoint",
+            "Accept plain text input",
+            "Parse .docx files using mammoth or similar",
+            "Validate prompt content",
+            "Store in database",
+            "Return formatted prompt"
+          ]
+        },
+        {
+          "id": "DRAFT-002",
+          "title": "Implement draft upload/creation endpoint",
+          "description": "Accept draft text up to 5000 words for free tier (ST-104)",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 5,
+          "subtasks": [
+            "Create /api/drafts endpoint (POST)",
+            "Validate word count (5000 for free tier)",
+            "Accept plain text and .docx",
+            "Link to user and prompt",
+            "Store initial version",
+            "Return draft ID"
+          ]
+        },
+        {
+          "id": "DRAFT-003",
+          "title": "Build draft versioning system",
+          "description": "Track all draft edits and changes (ST-111)",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 6,
+          "dependencies": ["DRAFT-002"],
+          "subtasks": [
+            "Create draft_versions table",
+            "Store timestamp for each version",
+            "Link versions to parent draft",
+            "Create version retrieval endpoint",
+            "Implement version comparison",
+            "Add rollback capability"
+          ]
+        },
+        {
+          "id": "DRAFT-004",
+          "title": "Implement draft tagging and organization",
+          "description": "Name, tag, and categorize drafts (ST-106)",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 4,
+          "dependencies": ["DRAFT-002"],
+          "subtasks": [
+            "Add draft naming functionality",
+            "Create tagging system (In Progress, Final, etc.)",
+            "Build tag management endpoints",
+            "Implement draft filtering by tag",
+            "Add draft sorting (by date, name, tag)"
+          ]
+        },
+        {
+          "id": "DRAFT-005",
+          "title": "Implement draft storage limits per tier",
+          "description": "Enforce 2 drafts for free, unlimited for paid (ST-106)",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 4,
+          "dependencies": ["DRAFT-002", "TIER-001"],
+          "subtasks": [
+            "Check user tier before draft creation",
+            "Count existing drafts for user",
+            "Enforce limit for free tier (2 drafts)",
+            "Allow unlimited for paid tier",
+            "Return appropriate error messages"
+          ]
+        },
+        {
+          "id": "DRAFT-006",
+          "title": "Build draft retrieval and management endpoints",
+          "description": "GET, UPDATE, DELETE operations for drafts",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 5,
+          "dependencies": ["DRAFT-002"],
+          "subtasks": [
+            "Create GET /api/drafts (list all for user)",
+            "Create GET /api/drafts/:id (single draft)",
+            "Create PUT /api/drafts/:id (update)",
+            "Create DELETE /api/drafts/:id",
+            "Add pagination for draft lists",
+            "Test all CRUD operations"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "track-6",
+      "name": "Tier & Usage Management",
+      "description": "Subscription tiers, usage tracking, and rate limiting",
+      "dependencies": ["INFRA-002", "AUTH-001"],
+      "tasks": [
+        {
+          "id": "TIER-001",
+          "title": "Implement tier management system",
+          "description": "Free, Plus, and Pro tier logic",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 6,
+          "subtasks": [
+            "Create subscriptions table",
+            "Define tier configurations (free/plus/pro)",
+            "Build tier checking middleware",
+            "Implement tier upgrade/downgrade logic",
+            "Add subscription expiration handling"
+          ]
+        },
+        {
+          "id": "TIER-002",
+          "title": "Build usage tracking system",
+          "description": "Track AI edits, customizations, and fetches per user",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 6,
+          "dependencies": ["TIER-001"],
+          "subtasks": [
+            "Create usage_tracking table",
+            "Track AI edit count (1-2/month free, unlimited paid)",
+            "Track school customizations (1/month free, 10 plus, unlimited pro)",
+            "Track school fetches (10/month free, 100 paid)",
+            "Reset monthly counters",
+            "Build usage query endpoints"
+          ]
+        },
+        {
+          "id": "TIER-003",
+          "title": "Implement rate limiting",
+          "description": "Enforce usage limits and return 429 errors (ST-110)",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 5,
+          "dependencies": ["TIER-002"],
+          "subtasks": [
+            "Add rate limit checking middleware",
+            "Enforce limits before API calls",
+            "Return 429 with upgrade message",
+            "Implement IP-based rate limiting for endpoints",
+            "Test limit enforcement across tiers"
+          ]
+        },
+        {
+          "id": "TIER-004",
+          "title": "Build payment integration",
+          "description": "Stripe integration for Plus and Pro plans",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 8,
+          "dependencies": ["TIER-001"],
+          "subtasks": [
+            "Set up Stripe account and API keys",
+            "Create Stripe products for Plus/Pro",
+            "Build checkout session endpoint",
+            "Implement webhook handler for payment events",
+            "Handle subscription updates and cancellations",
+            "Add payment success/failure flows",
+            "Test with Stripe test mode"
+          ]
+        },
+        {
+          "id": "TIER-005",
+          "title": "Build upgrade/downgrade flows",
+          "description": "UI and logic for tier changes",
+          "priority": "medium",
+          "status": "pending",
+          "estimated_hours": 5,
+          "dependencies": ["TIER-004"],
+          "subtasks": [
+            "Create upgrade endpoint",
+            "Handle prorated billing",
+            "Implement downgrade with grace period",
+            "Update user limits on tier change",
+            "Add confirmation flows"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "track-7",
+      "name": "Frontend - Core UI",
+      "description": "React frontend with TailwindCSS, main pages and components",
+      "dependencies": [],
+      "tasks": [
+        {
+          "id": "FE-001",
+          "title": "Set up React + TailwindCSS project",
+          "description": "Initialize frontend with responsive design system",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 4,
+          "subtasks": [
+            "Initialize React app (Vite or CRA)",
+            "Install and configure TailwindCSS",
+            "Set up routing (React Router)",
+            "Configure build and dev scripts",
+            "Create base layout components",
+            "Set up responsive breakpoints"
+          ]
+        },
+        {
+          "id": "FE-002",
+          "title": "Build landing page",
+          "description": "Product pitch and sign-up CTA",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 6,
+          "dependencies": ["FE-001"],
+          "subtasks": [
+            "Design hero section with value proposition",
+            "Create features showcase",
+            "Add pricing comparison",
+            "Implement CTA buttons",
+            "Ensure mobile responsiveness",
+            "Add animations and polish"
+          ]
+        },
+        {
+          "id": "FE-003",
+          "title": "Build authentication pages",
+          "description": "Login, register, verify email, password reset",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 8,
+          "dependencies": ["FE-001", "AUTH-002", "AUTH-003"],
+          "subtasks": [
+            "Create registration form with validation",
+            "Create login form",
+            "Add Google OAuth button",
+            "Build email verification page",
+            "Create password reset flow pages",
+            "Add form error handling",
+            "Implement loading states"
+          ]
+        },
+        {
+          "id": "FE-004",
+          "title": "Build dashboard page",
+          "description": "List of drafts, prompts, and schools",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 10,
+          "dependencies": ["FE-001", "DRAFT-006"],
+          "subtasks": [
+            "Create dashboard layout",
+            "Build draft list component with cards",
+            "Add draft filtering and sorting",
+            "Show usage stats for current tier",
+            "Add quick action buttons",
+            "Implement empty states",
+            "Make responsive for mobile"
+          ]
+        },
+        {
+          "id": "FE-005",
+          "title": "Build editor view",
+          "description": "Split-screen editor with prompt, draft, and AI feedback",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 12,
+          "dependencies": ["FE-001", "AI-003", "DRAFT-002"],
+          "subtasks": [
+            "Create three-pane layout (prompt, draft, feedback)",
+            "Implement rich text editor for draft",
+            "Build prompt display pane",
+            "Create AI feedback display panel",
+            "Add inline comment highlights",
+            "Implement save functionality",
+            "Add version history access",
+            "Make layout responsive/collapsible"
+          ]
+        },
+        {
+          "id": "FE-006",
+          "title": "Build school selector modal",
+          "description": "Search and select schools/majors (ST-107)",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 6,
+          "dependencies": ["FE-001", "SCHOOL-004"],
+          "subtasks": [
+            "Create modal component",
+            "Add school search with autocomplete",
+            "Build major/program selector",
+            "Show auto-pull status indicator",
+            "Add loading states for fetch",
+            "Implement checkbox selection",
+            "Show tier limits"
+          ]
+        },
+        {
+          "id": "FE-007",
+          "title": "Build pricing/upgrade page",
+          "description": "Feature comparison and payment flow",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 6,
+          "dependencies": ["FE-001", "TIER-004"],
+          "subtasks": [
+            "Create pricing tier cards",
+            "Build feature comparison table",
+            "Add monthly/annual toggle",
+            "Integrate Stripe checkout",
+            "Show current plan indicator",
+            "Add upgrade CTAs (ST-110)"
+          ]
+        },
+        {
+          "id": "FE-008",
+          "title": "Build shared components library",
+          "description": "Reusable UI components across the app",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 8,
+          "dependencies": ["FE-001"],
+          "subtasks": [
+            "Create Button component with variants",
+            "Build Input and TextArea components",
+            "Create Modal/Dialog component",
+            "Build Card component",
+            "Create Loading spinner/skeleton",
+            "Build Toast notification system",
+            "Create Badge and Tag components",
+            "Document component usage"
+          ]
+        },
+        {
+          "id": "FE-009",
+          "title": "Implement state management",
+          "description": "Global state for auth, user, and app data",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 5,
+          "dependencies": ["FE-001"],
+          "subtasks": [
+            "Set up Context API or Redux",
+            "Create auth state management",
+            "Build user profile state",
+            "Manage draft state",
+            "Handle loading and error states",
+            "Add state persistence (localStorage)"
+          ]
+        },
+        {
+          "id": "FE-010",
+          "title": "Implement API client layer",
+          "description": "Axios/fetch wrapper for all backend calls",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 6,
+          "dependencies": ["FE-001", "AUTH-001"],
+          "subtasks": [
+            "Create API client with base URL",
+            "Add JWT token interceptor",
+            "Implement request/response logging",
+            "Add error handling and retries",
+            "Create typed API methods for all endpoints",
+            "Add request cancellation support"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "track-8",
+      "name": "Testing & Quality Assurance",
+      "description": "Unit tests, integration tests, and end-to-end testing",
+      "dependencies": ["track-2", "track-3", "track-4", "track-5"],
+      "tasks": [
+        {
+          "id": "TEST-001",
+          "title": "Set up testing infrastructure",
+          "description": "Configure Jest, testing libraries, and CI",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 4,
+          "subtasks": [
+            "Install Jest and React Testing Library",
+            "Configure test environment",
+            "Set up coverage reporting",
+            "Create test database",
+            "Configure CI/CD pipeline for tests"
+          ]
+        },
+        {
+          "id": "TEST-002",
+          "title": "Write authentication tests",
+          "description": "Test all auth flows and security features",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 6,
+          "dependencies": ["TEST-001", "AUTH-003"],
+          "subtasks": [
+            "Test registration flow",
+            "Test login with valid/invalid credentials",
+            "Test account lockout after 5 failures",
+            "Test JWT token validation",
+            "Test OAuth flow",
+            "Test password reset flow"
+          ]
+        },
+        {
+          "id": "TEST-003",
+          "title": "Write AI integration tests",
+          "description": "Test essay editing and customization",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 8,
+          "dependencies": ["TEST-001", "AI-005"],
+          "subtasks": [
+            "Test essay editing endpoint",
+            "Test all 10 principles are addressed",
+            "Test customization with school data",
+            "Test response time < 5 seconds",
+            "Test error handling for API failures",
+            "Mock OpenAI API calls"
+          ]
+        },
+        {
+          "id": "TEST-004",
+          "title": "Write school auto-pull tests",
+          "description": "Test entire auto-pull pipeline",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 8,
+          "dependencies": ["TEST-001", "SCHOOL-006"],
+          "subtasks": [
+            "Test status endpoint",
+            "Test data retrieval endpoint",
+            "Test fetch endpoint with new school",
+            "Test freshness checking",
+            "Test cache hit/miss scenarios",
+            "Test force_refresh parameter",
+            "Mock search and scraping APIs"
+          ]
+        },
+        {
+          "id": "TEST-005",
+          "title": "Write tier and usage limit tests",
+          "description": "Test all tier restrictions and rate limiting",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 6,
+          "dependencies": ["TEST-001", "TIER-003"],
+          "subtasks": [
+            "Test free tier limits (edits, customizations, drafts)",
+            "Test paid tier unlimited access",
+            "Test rate limiting (429 responses)",
+            "Test monthly counter resets",
+            "Test upgrade/downgrade flows"
+          ]
+        },
+        {
+          "id": "TEST-006",
+          "title": "Write integration tests",
+          "description": "End-to-end user flow testing",
+          "priority": "medium",
+          "status": "pending",
+          "estimated_hours": 10,
+          "dependencies": ["TEST-001", "FE-005"],
+          "subtasks": [
+            "Test complete registration to first edit flow",
+            "Test draft creation to customization flow",
+            "Test school selection to essay customization",
+            "Test payment and upgrade flow",
+            "Test hitting and respecting tier limits"
+          ]
+        },
+        {
+          "id": "TEST-007",
+          "title": "Perform load and performance testing",
+          "description": "Test system under target load (5000 users)",
+          "priority": "medium",
+          "status": "pending",
+          "estimated_hours": 8,
+          "subtasks": [
+            "Set up load testing tools (k6, Artillery)",
+            "Test concurrent user load",
+            "Test AI response times at scale",
+            "Test database query performance",
+            "Test Redis cache effectiveness",
+            "Identify and fix bottlenecks"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "track-9",
+      "name": "Security & Compliance",
+      "description": "Security hardening, HTTPS, and data protection",
+      "dependencies": ["INFRA-004", "AUTH-001"],
+      "tasks": [
+        {
+          "id": "SEC-001",
+          "title": "Implement HTTPS everywhere",
+          "description": "Force SSL/TLS on all connections",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 3,
+          "subtasks": [
+            "Configure SSL certificates",
+            "Set up HTTPS redirect",
+            "Add HSTS headers",
+            "Test certificate renewal",
+            "Verify all endpoints use HTTPS"
+          ]
+        },
+        {
+          "id": "SEC-002",
+          "title": "Implement security headers",
+          "description": "Add CSP, X-Frame-Options, etc.",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 3,
+          "subtasks": [
+            "Add Content Security Policy",
+            "Add X-Frame-Options",
+            "Add X-Content-Type-Options",
+            "Add Referrer-Policy",
+            "Test header effectiveness"
+          ]
+        },
+        {
+          "id": "SEC-003",
+          "title": "Implement input validation and sanitization",
+          "description": "Prevent XSS, SQL injection, and other attacks",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 6,
+          "subtasks": [
+            "Add input validation middleware",
+            "Sanitize all user inputs",
+            "Use parameterized queries",
+            "Implement request size limits",
+            "Add XSS protection",
+            "Test with OWASP top 10 vulnerabilities"
+          ]
+        },
+        {
+          "id": "SEC-004",
+          "title": "Set up API security monitoring",
+          "description": "Detect and alert on suspicious activity",
+          "priority": "medium",
+          "status": "pending",
+          "estimated_hours": 4,
+          "subtasks": [
+            "Implement request logging",
+            "Add anomaly detection",
+            "Set up alerts for failed auth attempts",
+            "Monitor rate limit violations",
+            "Create security dashboard"
+          ]
+        },
+        {
+          "id": "SEC-005",
+          "title": "Implement data backup and recovery",
+          "description": "Database backup strategy",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 4,
+          "subtasks": [
+            "Set up automated daily backups",
+            "Configure backup retention policy",
+            "Test backup restoration",
+            "Document recovery procedures",
+            "Set up backup monitoring"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "track-10",
+      "name": "Deployment & DevOps",
+      "description": "CI/CD, monitoring, and production deployment",
+      "dependencies": ["INFRA-005", "TEST-001"],
+      "tasks": [
+        {
+          "id": "DEPLOY-001",
+          "title": "Set up CI/CD pipeline",
+          "description": "Automated testing and deployment",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 6,
+          "subtasks": [
+            "Configure GitHub Actions or similar",
+            "Add automated testing on PR",
+            "Add linting and code quality checks",
+            "Configure automated deployment to staging",
+            "Add manual approval for production",
+            "Test full pipeline"
+          ]
+        },
+        {
+          "id": "DEPLOY-002",
+          "title": "Set up application monitoring",
+          "description": "APM, error tracking, and logging",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 5,
+          "subtasks": [
+            "Set up error tracking (Sentry or similar)",
+            "Configure application performance monitoring",
+            "Add structured logging",
+            "Set up log aggregation",
+            "Create monitoring dashboard",
+            "Configure alerts for critical errors"
+          ]
+        },
+        {
+          "id": "DEPLOY-003",
+          "title": "Configure staging environment",
+          "description": "Pre-production testing environment",
+          "priority": "high",
+          "status": "pending",
+          "estimated_hours": 4,
+          "subtasks": [
+            "Set up staging AWS infrastructure",
+            "Configure staging database",
+            "Add staging environment variables",
+            "Deploy to staging",
+            "Test deployment process"
+          ]
+        },
+        {
+          "id": "DEPLOY-004",
+          "title": "Production deployment",
+          "description": "Initial production release",
+          "priority": "critical",
+          "status": "pending",
+          "estimated_hours": 6,
+          "dependencies": ["DEPLOY-003", "SEC-001"],
+          "subtasks": [
+            "Final production infrastructure setup",
+            "Configure production environment variables",
+            "Run database migrations",
+            "Deploy backend and frontend",
+            "Verify all endpoints",
+            "Test critical user flows",
+            "Enable monitoring and alerts"
+          ]
+        },
+        {
+          "id": "DEPLOY-005",
+          "title": "Set up database migrations workflow",
+          "description": "Safe database change management",
+          "priority": "medium",
+          "status": "pending",
+          "estimated_hours": 4,
+          "subtasks": [
+            "Set up migration tool (Flyway, Liquibase, or similar)",
+            "Create migration versioning system",
+            "Add rollback capabilities",
+            "Document migration process",
+            "Test migrations on staging"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "track-11",
+      "name": "Documentation & Polish",
+      "description": "User documentation, API docs, and final polish",
+      "dependencies": ["FE-007", "DEPLOY-004"],
+      "tasks": [
+        {
+          "id": "DOC-001",
+          "title": "Write API documentation",
+          "description": "Complete OpenAPI/Swagger docs",
+          "priority": "medium",
+          "status": "pending",
+          "estimated_hours": 6,
+          "subtasks": [
+            "Document all endpoints",
+            "Add request/response examples",
+            "Document authentication flow",
+            "Add error code reference",
+            "Generate interactive API docs",
+            "Test all examples"
+          ]
+        },
+        {
+          "id": "DOC-002",
+          "title": "Create user documentation",
+          "description": "Help center and getting started guide",
+          "priority": "medium",
+          "status": "pending",
+          "estimated_hours": 8,
+          "subtasks": [
+            "Write getting started guide",
+            "Create feature tutorials",
+            "Document essay principles",
+            "Add FAQ section",
+            "Create troubleshooting guide",
+            "Add video tutorials (optional)"
+          ]
+        },
+        {
+          "id": "DOC-003",
+          "title": "Create developer documentation",
+          "description": "Setup and contribution guide",
+          "priority": "low",
+          "status": "pending",
+          "estimated_hours": 4,
+          "subtasks": [
+            "Write setup instructions",
+            "Document architecture",
+            "Add contribution guidelines",
+            "Document deployment process",
+            "Create code style guide"
+          ]
+        },
+        {
+          "id": "DOC-004",
+          "title": "UI/UX polish and refinement",
+          "description": "Final design improvements",
+          "priority": "medium",
+          "status": "pending",
+          "estimated_hours": 8,
+          "subtasks": [
+            "Review and refine all UI interactions",
+            "Add micro-interactions and animations",
+            "Improve loading states",
+            "Enhance error messages",
+            "Optimize for accessibility (WCAG)",
+            "Perform cross-browser testing"
+          ]
+        },
+        {
+          "id": "DOC-005",
+          "title": "Create marketing materials",
+          "description": "Screenshots, demo video, and pitch deck",
+          "priority": "low",
+          "status": "pending",
+          "estimated_hours": 6,
+          "subtasks": [
+            "Create product screenshots",
+            "Record demo video",
+            "Design product pitch deck",
+            "Write press release draft",
+            "Create social media assets"
+          ]
+        }
+      ]
+    }
+  ],
+  "milestones": [
+    {
+      "name": "M1: Infrastructure Ready",
+      "week": 2,
+      "dependencies": ["INFRA-002", "INFRA-003", "AUTH-001"]
+    },
+    {
+      "name": "M2: Core Authentication Complete",
+      "week": 3,
+      "dependencies": ["AUTH-002", "AUTH-003", "AUTH-004"]
+    },
+    {
+      "name": "M3: AI Integration Working",
+      "week": 5,
+      "dependencies": ["AI-003", "AI-005"]
+    },
+    {
+      "name": "M4: School Auto-Pull Functional",
+      "week": 6,
+      "dependencies": ["SCHOOL-006", "SCHOOL-008"]
+    },
+    {
+      "name": "M5: Draft Management Complete",
+      "week": 7,
+      "dependencies": ["DRAFT-006", "DRAFT-005"]
+    },
+    {
+      "name": "M6: Frontend Core Complete",
+      "week": 9,
+      "dependencies": ["FE-005", "FE-006", "FE-007"]
+    },
+    {
+      "name": "M7: Testing Complete",
+      "week": 10,
+      "dependencies": ["TEST-003", "TEST-004", "TEST-005"]
+    },
+    {
+      "name": "M8: Production Deployment",
+      "week": 12,
+      "dependencies": ["DEPLOY-004", "SEC-001"]
+    }
+  ],
+  "risk_assessment": [
+    {
+      "risk": "OpenAI API rate limits or costs exceed budget",
+      "impact": "high",
+      "mitigation": "Implement aggressive caching, consider alternative models for non-critical tasks"
+    },
+    {
+      "risk": "Web scraping blocked by school websites",
+      "impact": "high",
+      "mitigation": "Implement rotating proxies, respectful rate limiting, fallback to manual entry"
+    },
+    {
+      "risk": "AI response time > 5 seconds under load",
+      "impact": "medium",
+      "mitigation": "Optimize prompts, implement streaming responses, use faster models where possible"
+    },
+    {
+      "risk": "Free tier abuse (excessive usage)",
+      "impact": "medium",
+      "mitigation": "Strict rate limiting, IP tracking, CAPTCHA on signup"
+    },
+    {
+      "risk": "Payment integration complexity",
+      "impact": "medium",
+      "mitigation": "Use well-documented Stripe integration, allocate extra time for testing"
+    }
+  ],
+  "metadata": {
+    "created_at": "2025-10-15",
+    "total_tasks": 90,
+    "total_estimated_hours": 452,
+    "parallel_tracks": 11,
+    "critical_path": ["INFRA-002", "AUTH-001", "AI-001", "AI-003", "AI-005", "SCHOOL-006", "FE-005", "DEPLOY-004"]
+  }
+}
