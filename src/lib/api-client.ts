@@ -215,6 +215,10 @@ export class UserAPI extends BaseAPI {
   async getUsage() {
     return this.get('/user/usage');
   }
+
+  async getUsageStats() {
+    return this.get('/user/usage-stats');
+  }
 }
 
 /**
