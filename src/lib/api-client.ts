@@ -124,8 +124,8 @@ export class AuthAPI extends BaseAPI {
     return this.post('/auth/forgot-password', { email });
   }
 
-  async resetPassword(token: string, newPassword: string) {
-    return this.post('/auth/reset-password', { token, newPassword });
+  async resetPassword(token: string, password: string) {
+    return this.post('/auth/reset-password', { token, password });
   }
 }
 
