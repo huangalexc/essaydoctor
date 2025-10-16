@@ -16,7 +16,7 @@ export interface ApiResponse<T = any> {
 const createAxiosInstance = (): AxiosInstance => {
   const instance = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
-    timeout: 30000, // 30 seconds
+    timeout: 120000, // 120 seconds (2 minutes) - AI requests can take longer
     headers: {
       'Content-Type': 'application/json',
     },
@@ -133,28 +133,53 @@ export class AuthAPI extends BaseAPI {
  * Draft API
  */
 export class DraftAPI extends BaseAPI {
-  async createDraft(data: { promptText?: string; content: string; name?: string }) {
+  async create(data: { promptText?: string; content: string; name?: string }) {
     return this.post('/drafts', data);
   }
 
-  async getDrafts() {
-    return this.get('/drafts');
+  async list() {
+    return super.get('/drafts');
   }
 
-  async getDraft(id: string) {
-    return this.get(`/drafts/${id}`);
+  async getById(id: string) {
+    return super.get(`/drafts/${id}`);
   }
 
-  async updateDraft(id: string, data: { content?: string; name?: string; tag?: string }) {
+  async update(id: string, data: { content?: string; name?: string; tag?: string }) {
     return this.put(`/drafts/${id}`, data);
   }
 
+  async deleteById(id: string) {
+    return super.delete(`/drafts/${id}`);
+  }
+
+  async getVersions(id: string) {
+    return super.get(`/drafts/${id}/versions`);
+  }
+
+  // Backwards compatibility aliases
+  async createDraft(data: { promptText?: string; content: string; name?: string }) {
+    return this.create(data);
+  }
+
+  async getDrafts() {
+    return this.list();
+  }
+
+  async getDraft(id: string) {
+    return this.getById(id);
+  }
+
+  async updateDraft(id: string, data: { content?: string; name?: string; tag?: string }) {
+    return this.update(id, data);
+  }
+
   async deleteDraft(id: string) {
-    return this.delete(`/drafts/${id}`);
+    return this.deleteById(id);
   }
 
   async getDraftVersions(id: string) {
-    return this.get(`/drafts/${id}/versions`);
+    return this.getVersions(id);
   }
 }
 
@@ -162,16 +187,29 @@ export class DraftAPI extends BaseAPI {
  * AI Essay API
  */
 export class EssayAPI extends BaseAPI {
-  async editEssay(data: { essay: string; prompt: string }) {
+  async edit(data: { essay: string; prompt: string }) {
     return this.post('/essays/edit', data);
   }
 
-  async customizeEssay(data: { essay: string; schoolName: string; majorName: string }) {
+  async customize(data: { essay: string; schoolName: string; majorName: string }) {
     return this.post('/essays/customize', data);
   }
 
-  async rewriteEssay(data: { essay: string; prompt: string; focusAreas?: string[] }) {
+  async rewrite(data: { essay: string; prompt: string; focusAreas?: string[] }) {
     return this.post('/essays/rewrite', data);
+  }
+
+  // Backwards compatibility aliases
+  async editEssay(data: { essay: string; prompt: string }) {
+    return this.edit(data);
+  }
+
+  async customizeEssay(data: { essay: string; schoolName: string; majorName: string }) {
+    return this.customize(data);
+  }
+
+  async rewriteEssay(data: { essay: string; prompt: string; focusAreas?: string[] }) {
+    return this.rewrite(data);
   }
 }
 

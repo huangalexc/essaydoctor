@@ -75,18 +75,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate AI feedback
+    // Generate AI feedback in JSON format
     const startTime = Date.now();
-    const evaluationPrompt = generateEssayEvaluationPrompt(essay, prompt);
+    const evaluationPrompt = generateEssayEvaluationPrompt(essay, prompt, 'json');
 
-    const feedback = await generateCompletion(evaluationPrompt, {
+    const feedbackText = await generateCompletion(evaluationPrompt, {
       model: 'gpt-4-turbo-preview',
       maxTokens: 3000,
       temperature: 0.7,
-      systemMessage: 'You are an expert college essay editor with years of experience helping students craft compelling application essays.',
+      systemMessage: 'You are an expert college essay editor. You MUST respond with valid JSON only, no markdown formatting.',
     });
 
     const responseTime = Date.now() - startTime;
+
+    // Parse JSON response
+    let feedback;
+    let feedbackType = 'json';
+    try {
+      // Remove any markdown code blocks if present
+      const cleanedText = feedbackText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      feedback = JSON.parse(cleanedText);
+    } catch (parseError) {
+      console.error('Failed to parse AI feedback as JSON:', parseError);
+      console.error('Raw feedback (first 500 chars):', feedbackText.substring(0, 500));
+      // Fallback to raw text if JSON parsing fails
+      feedback = feedbackText;
+      feedbackType = 'markdown';
+    }
 
     // Update usage tracking
     if (usage) {
@@ -103,6 +118,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       feedback,
+      feedbackType,
       responseTime,
       remainingEdits: tier === 'FREE' ? tierLimits.FREE - (usage?.aiEditsCount || 0) - 1 : 'unlimited',
     });

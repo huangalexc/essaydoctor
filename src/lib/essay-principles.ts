@@ -129,7 +129,42 @@ Provide specific suggestions for improvement.`,
 /**
  * Generate a comprehensive evaluation prompt that covers all principles
  */
-export function generateEssayEvaluationPrompt(essay: string, prompt: string): string {
+export function generateEssayEvaluationPrompt(essay: string, prompt: string, format: 'json' | 'markdown' = 'json'): string {
+  if (format === 'json') {
+    const principlesList = ESSAY_PRINCIPLES.map((p, i) => `${i + 1}. ${p.name} (ID: ${p.id})`).join('\n');
+
+    return `You are an expert college essay editor. Analyze the following essay and provide feedback in JSON format.
+
+PROMPT: ${prompt}
+
+ESSAY: ${essay}
+
+Evaluate across these ${ESSAY_PRINCIPLES.length} principles:
+${principlesList}
+
+Respond with ONLY valid JSON (no markdown, no code blocks):
+
+{
+  "overallScore": <number 0-100>,
+  "overallAssessment": "<brief summary>",
+  "principlesFeedback": [${ESSAY_PRINCIPLES.map(p => `
+    {"principleId":"${p.id}","principleName":"${p.name}","score":<1-10>,"feedback":"<analysis>","suggestions":["<tip1>","<tip2>"]}`).join(',')}
+  ],
+  "priorityImprovements": [
+    {"rank":1,"title":"<title>","description":"<desc>","principleIds":["<id>"]}
+  ],
+  "inlineComments": [
+    {"section":"<section>","comment":"<comment>","priority":"<high|medium|low>"}
+  ],
+  "strengths": ["<strength1>","<strength2>"],
+  "weaknesses": ["<weakness1>","<weakness2>"],
+  "wordCount": <number>
+}
+
+CRITICAL: Return ONLY the JSON object. No text before or after. All ${ESSAY_PRINCIPLES.length} principles required.`;
+  }
+
+  // Markdown format
   return `You are an expert college essay editor. Analyze the following essay against the college application prompt and provide detailed, actionable feedback.
 
 PROMPT:

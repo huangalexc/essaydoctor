@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hashPassword } from '@/lib/password';
 import { generateVerificationToken } from '@/lib/tokens';
+import { sendVerificationEmail } from '@/lib/email';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
@@ -71,8 +72,13 @@ export async function POST(request: NextRequest) {
     // Generate verification token
     const verificationToken = await generateVerificationToken(user.id);
 
-    // TODO: Send verification email
-    // await sendVerificationEmail(email, verificationToken);
+    // Send verification email
+    const emailResult = await sendVerificationEmail(email, verificationToken);
+
+    if (!emailResult.success) {
+      console.error('Failed to send verification email:', emailResult.error);
+      // Continue registration even if email fails
+    }
 
     return NextResponse.json(
       {

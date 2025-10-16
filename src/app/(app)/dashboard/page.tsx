@@ -40,7 +40,7 @@ export default function DashboardPage() {
       if (draftsResponse.error) {
         addToast({ type: 'error', message: draftsResponse.error });
       } else {
-        setDrafts(draftsResponse.data || []);
+        setDrafts(draftsResponse.data?.drafts || []);
       }
 
       // Load usage stats
@@ -69,14 +69,14 @@ export default function DashboardPage() {
 
     try {
       const response = await api.drafts.create({
-        content: '',
+        content: ' ', // Space character to pass validation
         name: 'Untitled Draft',
       });
 
       if (response.error) {
         addToast({ type: 'error', message: response.error });
-      } else if (response.data) {
-        router.push(`/editor/${response.data.id}`);
+      } else if (response.data?.draft) {
+        router.push(`/editor/${response.data.draft.id}`);
       }
     } catch (error: any) {
       addToast({ type: 'error', message: error.message || 'Failed to create draft' });
@@ -87,11 +87,11 @@ export default function DashboardPage() {
     if (!confirm('Are you sure you want to delete this draft?')) return;
 
     try {
-      const response = await api.drafts.delete(draftId);
+      const response = await api.drafts.deleteById(draftId);
       if (response.error) {
         addToast({ type: 'error', message: response.error });
       } else {
-        setDrafts(drafts.filter((d) => d.id !== draftId));
+        setDrafts(Array.isArray(drafts) ? drafts.filter((d) => d.id !== draftId) : []);
         addToast({ type: 'success', message: 'Draft deleted successfully' });
       }
     } catch (error: any) {
@@ -99,7 +99,7 @@ export default function DashboardPage() {
     }
   };
 
-  const filteredDrafts = drafts
+  const filteredDrafts = (Array.isArray(drafts) ? drafts : [])
     .filter((draft) => {
       if (filter === 'all') return true;
       return draft.tag?.toLowerCase() === filter;
