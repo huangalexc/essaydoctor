@@ -183,10 +183,18 @@ export default function EditorPage() {
       // Extract focus areas from feedback
       const focusAreas = aiFeedback.priorityImprovements?.slice(0, 3).map(imp => imp.title) || [];
 
+      // Extract word limit from prompt text
+      let wordLimit: number | undefined;
+      const wordLimitMatch = promptText.match(/(\d+)\s*word/i);
+      if (wordLimitMatch) {
+        wordLimit = parseInt(wordLimitMatch[1]);
+      }
+
       const response = await api.essays.rewrite({
         essay: content,
         prompt: promptText,
         focusAreas,
+        wordLimit,
       });
 
       if (response.error) {

@@ -195,7 +195,7 @@ export class EssayAPI extends BaseAPI {
     return this.post('/essays/customize', data);
   }
 
-  async rewrite(data: { essay: string; prompt: string; focusAreas?: string[] }) {
+  async rewrite(data: { essay: string; prompt: string; focusAreas?: string[]; wordLimit?: number }) {
     return this.post('/essays/rewrite', data);
   }
 
@@ -208,7 +208,7 @@ export class EssayAPI extends BaseAPI {
     return this.customize(data);
   }
 
-  async rewriteEssay(data: { essay: string; prompt: string; focusAreas?: string[] }) {
+  async rewriteEssay(data: { essay: string; prompt: string; focusAreas?: string[]; wordLimit?: number }) {
     return this.rewrite(data);
   }
 }

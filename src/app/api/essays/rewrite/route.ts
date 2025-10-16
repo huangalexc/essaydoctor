@@ -10,6 +10,7 @@ const rewriteSchema = z.object({
   essay: z.string().min(50, 'Essay must be at least 50 characters'),
   prompt: z.string().min(10, 'Prompt must be at least 10 characters'),
   focusAreas: z.array(z.string()).optional().default([]),
+  wordLimit: z.number().positive().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { essay, prompt, focusAreas } = validation.data;
+    const { essay, prompt, focusAreas, wordLimit } = validation.data;
     const userId = session.user.id;
 
     // Check rate limit
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     // Generate AI rewrite
     const startTime = Date.now();
-    const rewritePrompt = generateRewritePrompt(essay, prompt, focusAreas);
+    const rewritePrompt = generateRewritePrompt(essay, prompt, focusAreas, wordLimit);
 
     const rewriteText = await generateCompletion(rewritePrompt, {
       model: 'gpt-4-turbo-preview',
