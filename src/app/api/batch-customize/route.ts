@@ -125,19 +125,38 @@ export async function POST(request: NextRequest) {
             const results = await processBatchCustomizations(userId, essay, [school]);
             const result = results[0];
 
-            // Send result
+            // Send result with metadata
+            const resultData: any = {
+              type: 'result',
+              index: i,
+              schoolName: result.schoolName,
+              majorName: result.majorName,
+              status: result.status,
+              responseTime: result.responseTime,
+            };
+
+            // Extract metadata if successful
+            if (result.status === 'success' && 'customization' in result) {
+              resultData.customizedEssay = result.customization.customizedEssay;
+              resultData.wordCount = result.customization.wordCount;
+              resultData.meetsWordLimit = result.customization.meetsWordLimit;
+              resultData.voiceScore = result.customization.voicePreservationScore;
+              resultData.aiScore = result.customization.aiClicheAvoidanceScore;
+              resultData.alignmentScore = result.customization.alignmentScore;
+              resultData.retryCount = result.retryCount;
+              resultData.metadata = result.customization;
+            } else if (result.status === 'error' && 'error' in result) {
+              resultData.error = result.error;
+              resultData.code = result.code;
+              resultData.retryable = result.retryable;
+            }
+
             controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  type: 'result',
-                  index: i,
-                  ...result,
-                })}\n\n`
-              )
+              encoder.encode(`data: ${JSON.stringify(resultData)}\n\n`)
             );
 
             // Save to database if successful
-            if (result.status === 'success') {
+            if (result.status === 'success' && 'customization' in result) {
               try {
                 const prisma = (await import('@/lib/prisma')).default;
                 await prisma.customization.create({
@@ -147,7 +166,13 @@ export async function POST(request: NextRequest) {
                     schoolName: result.schoolName,
                     majorName: result.majorName,
                     originalEssay: essay,
-                    customizedEssay: result.customizedEssay,
+                    customizedEssay: result.customization.customizedEssay,
+                    metadata: result.customization as any,
+                    wordCount: result.customization.wordCount,
+                    meetsWordLimit: result.customization.meetsWordLimit,
+                    voicePreservationScore: result.customization.voicePreservationScore,
+                    aiClicheAvoidanceScore: result.customization.aiClicheAvoidanceScore,
+                    alignmentScore: result.customization.alignmentScore,
                     responseTime: result.responseTime,
                   },
                 });

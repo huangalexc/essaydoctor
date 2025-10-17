@@ -1,15 +1,32 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import type { EssayCustomization } from '@/lib/schemas/essay-customization';
 
 export type SchoolStatus = {
   id: string;
   schoolName: string;
   majorName: string;
-  status: 'idle' | 'processing' | 'success' | 'error';
-  result?: string;
+  status: 'idle' | 'processing' | 'validating' | 'retrying' | 'success' | 'error';
+
+  // Core result
+  result?: string; // customizedEssay
   error?: string;
   responseTime?: number;
+
+  // Word count tracking
   wordCount?: number;
+  meetsWordLimit?: boolean;
+
+  // Quality scores (1-10)
+  voicePreservationScore?: number;
+  aiClicheAvoidanceScore?: number;
+  alignmentScore?: number;
+
+  // Retry tracking
+  retryCount?: number;
+
+  // Full metadata
+  metadata?: EssayCustomization;
 };
 
 type BatchCustomizeStore = {
