@@ -9,8 +9,10 @@
  */
 
 import { RateLimiter } from './rate-limiter';
-import { generateCompletion } from './openai';
+import { generateStructuredCompletion } from './openai';
 import { generateCustomizationPrompt } from './essay-principles';
+import { EssayCustomizationSchema, type EssayCustomization } from './schemas/essay-customization';
+import { validateWordCount, generateRetryFeedback } from './essay-validation';
 import prisma from './prisma';
 import { cache } from './redis';
 import { CacheKeys } from './cache-keys';
@@ -21,14 +23,14 @@ export type BatchProcessResult = {
 } & (
   | {
       status: 'success';
-      customizedEssay: string;
+      customization: EssayCustomization;
       responseTime: number;
-      wordCount: number;
+      retryCount: number;
     }
   | {
       status: 'error';
       error: string;
-      code: 'RATE_LIMIT' | 'VALIDATION' | 'API_ERROR' | 'NOT_FOUND' | 'UNKNOWN';
+      code: 'RATE_LIMIT' | 'VALIDATION' | 'API_ERROR' | 'NOT_FOUND' | 'WORD_LIMIT' | 'UNKNOWN';
       retryable: boolean;
     }
 );
@@ -41,6 +43,96 @@ interface SchoolWithData {
     keyFeatures: string[];
     keywords: string[];
   };
+}
+
+/**
+ * Customize essay for a single school with retry logic for word limit enforcement
+ *
+ * @param essay - Original essay content
+ * @param schoolName - Target school name
+ * @param majorName - Target major
+ * @param schoolInfo - School program information
+ * @param wordLimit - Optional word limit to enforce
+ * @param maxRetries - Maximum retry attempts (default: 2)
+ * @returns Customization result with metadata
+ */
+async function customizeWithRetry(
+  essay: string,
+  schoolName: string,
+  majorName: string,
+  schoolInfo: { programDescription: string; keyFeatures: string[]; keywords: string[] },
+  wordLimit?: number,
+  maxRetries: number = 2
+): Promise<{ customization: EssayCustomization; retryCount: number }> {
+  let prompt = generateCustomizationPrompt(essay, schoolName, majorName, schoolInfo);
+
+  // Add word limit enforcement to prompt
+  if (wordLimit) {
+    const currentWordCount = essay.trim().split(/\s+/).filter(Boolean).length;
+    prompt += `\n\n**CRITICAL WORD LIMIT**: The customized essay MUST NOT exceed ${wordLimit} words.
+
+Current essay: ${currentWordCount} words
+Target: ${wordLimit} words maximum
+
+Count each word carefully. If approaching the limit, prioritize the most important customizations and remove less critical details.
+
+Report the exact word count and whether you met the limit in your response.`;
+  }
+
+  // Add voice preservation guidelines
+  prompt += `\n\n**CRITICAL: Maintain Human Voice**
+
+Avoid these AI writing clichés:
+❌ Excessive em dashes (—)
+❌ "It's Not About X, It's About Y" formula
+❌ Excessive tricolon (groups of three)
+❌ Wikipedia voice (encyclopedic tone)
+❌ "tapestry", "landscape", "In today's world" metaphors
+❌ Enthusiasm overload
+❌ Setup-payoff rhetorical questions
+
+✅ DO:
+- Natural, conversational rhythm
+- Varied sentence structures
+- Authentic student voice
+- Specific and concrete details
+- Simple, direct language
+
+Rate your voice preservation (1-10) and AI cliché avoidance (1-10).
+List any AI patterns you detected in your own writing.`;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const result = await generateStructuredCompletion(
+      prompt,
+      EssayCustomizationSchema,
+      'essay_customization',
+      {
+        model: 'gpt-4o-2024-08-06',
+        maxTokens: 4000,
+        temperature: 0.7,
+        systemMessage: "You are an expert at tailoring college essays to specific programs while maintaining the student's authentic voice.",
+      }
+    );
+
+    // If no word limit or model reports meeting it, validate and return
+    if (!wordLimit || result.meetsWordLimit) {
+      const validation = validateWordCount(result.customizedEssay, wordLimit || Infinity);
+      if (validation.valid) {
+        return { customization: result, retryCount: attempt };
+      }
+    }
+
+    // If we have retries left, add feedback
+    if (attempt < maxRetries && wordLimit) {
+      const validation = validateWordCount(result.customizedEssay, wordLimit);
+      if (!validation.valid) {
+        prompt += '\n\n' + generateRetryFeedback(validation);
+      }
+    }
+  }
+
+  // Final attempt failed, throw error
+  throw new Error(`Failed to meet word limit after ${maxRetries} retries`);
 }
 
 /**
@@ -113,7 +205,9 @@ export async function processBatchCustomizations(
   const customizationResults = await Promise.allSettled(
     schoolsWithData.map((school) =>
       limiter.add(async () => {
-        const prompt = generateCustomizationPrompt(
+        const startTime = Date.now();
+
+        const result = await customizeWithRetry(
           essay,
           school.schoolName,
           school.majorName,
@@ -121,28 +215,19 @@ export async function processBatchCustomizations(
             programDescription: school.data.programDescription,
             keyFeatures: school.data.keyFeatures,
             keywords: school.data.keywords,
-          }
+          },
+          undefined, // wordLimit - can be passed from API
+          2 // maxRetries
         );
 
-        const startTime = Date.now();
-
-        const customizedEssay = await generateCompletion(prompt, {
-          model: 'gpt-4-turbo-preview',
-          maxTokens: 2500,
-          temperature: 0.6,
-          systemMessage:
-            "You are an expert at tailoring college essays to specific programs while maintaining the student's authentic voice.",
-        });
-
         const responseTime = Date.now() - startTime;
-        const wordCount = customizedEssay.trim().split(/\s+/).filter(Boolean).length;
 
         return {
           schoolName: school.schoolName,
           majorName: school.majorName,
-          customizedEssay,
+          customization: result.customization,
           responseTime,
-          wordCount,
+          retryCount: result.retryCount,
         };
       })
     )
@@ -160,21 +245,22 @@ export async function processBatchCustomizations(
         schoolName: school.schoolName,
         majorName: school.majorName,
         status: 'success',
-        customizedEssay: result.value.customizedEssay,
+        customization: result.value.customization,
         responseTime: result.value.responseTime,
-        wordCount: result.value.wordCount,
+        retryCount: result.value.retryCount,
       });
     } else {
       const error = result.reason;
       const isRateLimit = error?.status === 429 || error?.code === 'rate_limit_exceeded';
       const isApiError = error?.status >= 500;
+      const isWordLimit = error?.message?.includes('word limit');
 
       failedResults.push({
         schoolName: school.schoolName,
         majorName: school.majorName,
         status: 'error',
         error: error?.message || 'Unknown error occurred',
-        code: isRateLimit ? 'RATE_LIMIT' : isApiError ? 'API_ERROR' : 'UNKNOWN',
+        code: isRateLimit ? 'RATE_LIMIT' : isApiError ? 'API_ERROR' : isWordLimit ? 'WORD_LIMIT' : 'UNKNOWN',
         retryable: isRateLimit || isApiError,
       });
     }
@@ -195,7 +281,7 @@ export async function processBatchCustomizations(
           },
         });
 
-        // Save customizations
+        // Save customizations with metadata
         await tx.customization.createMany({
           data: successfulResults.map((result) => ({
             userId,
@@ -203,7 +289,13 @@ export async function processBatchCustomizations(
             schoolName: result.schoolName,
             majorName: result.majorName,
             originalEssay: essay,
-            customizedEssay: result.customizedEssay,
+            customizedEssay: result.customization.customizedEssay,
+            metadata: result.customization as any, // Full structured response
+            wordCount: result.customization.wordCount,
+            meetsWordLimit: result.customization.meetsWordLimit,
+            voicePreservationScore: result.customization.voicePreservationScore,
+            aiClicheAvoidanceScore: result.customization.aiClicheAvoidanceScore,
+            alignmentScore: result.customization.alignmentScore,
             responseTime: result.responseTime,
           })),
           skipDuplicates: true,
