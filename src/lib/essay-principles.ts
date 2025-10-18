@@ -129,7 +129,42 @@ Provide specific suggestions for improvement.`,
 /**
  * Generate a comprehensive evaluation prompt that covers all principles
  */
-export function generateEssayEvaluationPrompt(essay: string, prompt: string): string {
+export function generateEssayEvaluationPrompt(essay: string, prompt: string, format: 'json' | 'markdown' = 'json'): string {
+  if (format === 'json') {
+    const principlesList = ESSAY_PRINCIPLES.map((p, i) => `${i + 1}. ${p.name} (ID: ${p.id})`).join('\n');
+
+    return `You are an expert college essay editor. Analyze the following essay and provide feedback in JSON format.
+
+PROMPT: ${prompt}
+
+ESSAY: ${essay}
+
+Evaluate across these ${ESSAY_PRINCIPLES.length} principles:
+${principlesList}
+
+Respond with ONLY valid JSON (no markdown, no code blocks):
+
+{
+  "overallScore": <number 0-100>,
+  "overallAssessment": "<brief summary>",
+  "principlesFeedback": [${ESSAY_PRINCIPLES.map(p => `
+    {"principleId":"${p.id}","principleName":"${p.name}","score":<1-10>,"feedback":"<analysis>","suggestions":["<tip1>","<tip2>"]}`).join(',')}
+  ],
+  "priorityImprovements": [
+    {"rank":1,"title":"<title>","description":"<desc>","principleIds":["<id>"]}
+  ],
+  "inlineComments": [
+    {"section":"<section>","comment":"<comment>","priority":"<high|medium|low>"}
+  ],
+  "strengths": ["<strength1>","<strength2>"],
+  "weaknesses": ["<weakness1>","<weakness2>"],
+  "wordCount": <number>
+}
+
+CRITICAL: Return ONLY the JSON object. No text before or after. All ${ESSAY_PRINCIPLES.length} principles required.`;
+  }
+
+  // Markdown format
   return `You are an expert college essay editor. Analyze the following essay against the college application prompt and provide detailed, actionable feedback.
 
 PROMPT:
@@ -229,9 +264,27 @@ Remember: The goal is thoughtful customization that enhances the essay, not rewr
 /**
  * Generate a prompt for complete essay rewrite
  */
-export function generateRewritePrompt(essay: string, prompt: string, focusAreas: string[]): string {
+export function generateRewritePrompt(
+  essay: string,
+  prompt: string,
+  focusAreas: string[],
+  wordLimit?: number
+): string {
   const focusSection =
     focusAreas.length > 0 ? `\n\nFocus especially on improving:\n${focusAreas.map((f) => `- ${f}`).join('\n')}` : '';
+
+  // Extract word limit from prompt if not provided
+  let targetWordLimit = wordLimit;
+  if (!targetWordLimit) {
+    const wordLimitMatch = prompt.match(/(\d+)\s*word/i);
+    if (wordLimitMatch) {
+      targetWordLimit = parseInt(wordLimitMatch[1]);
+    }
+  }
+
+  const wordLimitSection = targetWordLimit
+    ? `\n\n**CRITICAL WORD LIMIT**: The rewritten essay MUST NOT exceed ${targetWordLimit} words. Count carefully and stay within this limit.`
+    : '\n\nMaintain appropriate length (typically 500-650 words).';
 
   return `You are an expert college essay editor. Rewrite the following essay to significantly improve its quality while maintaining the student's authentic voice and core story.
 
@@ -241,6 +294,7 @@ ${prompt}
 CURRENT ESSAY:
 ${essay}
 ${focusSection}
+${wordLimitSection}
 
 REWRITING GUIDELINES:
 1. Keep the core narrative and personal story
@@ -252,12 +306,33 @@ REWRITING GUIDELINES:
 7. Improve flow and transitions
 8. Use stronger, more precise language
 9. Ensure a powerful conclusion
-10. Maintain appropriate length (typically 500-650 words)
+10. Sound natural and human - avoid AI writing patterns
+
+**CRITICAL: Avoid These AI Writing Clichés**
+Your rewrite must sound like a real student wrote it. Avoid these overused devices:
+
+❌ AVOID:
+1. Excessive Em Dash Use (—) - Use sparingly, if at all
+2. The "It's Not About X, It's About Y" Formula - This is tired and formulaic
+3. Excessive Tricolon use (groups of three) - Vary your sentence structures naturally
+4. The Wikipedia Voice - No encyclopedic or overly formal tone
+5. The "tapestry", "landscape" and "In today's [adjective] world" metaphors - These are AI tells
+6. Enthusiasm overload - Not every sentence needs to be excited or profound
+7. The setup-payoff structure - Avoid rhetorical questions followed by surprisingly generic explanations
+
+✅ DO:
+- Write with natural, conversational rhythm
+- Use varied sentence lengths and structures
+- Include authentic teenage voice and perspective
+- Be specific and concrete, not grandiose
+- Let insights emerge naturally from the story
+- Use simple, direct language where appropriate
+- Show personality through unique word choices and observations
 
 Please provide:
 
 ## Rewritten Essay
-[The significantly improved version]
+[The significantly improved version - must respect word limit if specified]
 
 ## Key Changes Made
 [Bulleted list of major improvements with before/after examples]
@@ -265,7 +340,7 @@ Please provide:
 ## Rationale
 [Brief explanation of the strategic choices in the rewrite]
 
-Remember: This should feel like the student's best work, not like it was written by someone else.`;
+Remember: This should feel like the student's best work, not like it was written by someone else or an AI.`;
 }
 
 /**
