@@ -133,28 +133,28 @@ export class AuthAPI extends BaseAPI {
  * Draft API
  */
 export class DraftAPI extends BaseAPI {
-  async createDraft(data: { promptText?: string; content: string; name?: string }) {
+  async create(data: { promptText?: string; content: string; name?: string }) {
     return this.post('/drafts', data);
   }
 
-  async getDrafts() {
-    return this.get('/drafts');
+  async list() {
+    return super.get('/drafts');
   }
 
-  async getDraft(id: string) {
-    return this.get(`/drafts/${id}`);
+  async get(id: string) {
+    return super.get(`/drafts/${id}`);
   }
 
-  async updateDraft(id: string, data: { content?: string; name?: string; tag?: string }) {
+  async update(id: string, data: { content?: string; name?: string; tag?: string }) {
     return this.put(`/drafts/${id}`, data);
   }
 
-  async deleteDraft(id: string) {
-    return this.delete(`/drafts/${id}`);
+  async delete(id: string) {
+    return super.delete(`/drafts/${id}`);
   }
 
-  async getDraftVersions(id: string) {
-    return this.get(`/drafts/${id}/versions`);
+  async getVersions(id: string) {
+    return super.get(`/drafts/${id}/versions`);
   }
 }
 

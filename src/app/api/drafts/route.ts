@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 const createDraftSchema = z.object({
   promptText: z.string().optional(),
-  content: z.string().min(1, 'Content is required'),
+  content: z.string(),
   name: z.string().optional(),
 });
 
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: validation.error.errors[0].message },
+        { error: validation.error.errors[0]?.message || 'Invalid request data' },
         { status: 400 }
       );
     }
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const userId = session.user.id;
 
     // Calculate word count
-    const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+    const wordCount = content.trim() ? content.trim().split(/\s+/).filter(Boolean).length : 0;
 
     // Check tier limits
     const subscription = await prisma.subscription.findUnique({
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ draft }, { status: 201 });
+    return NextResponse.json(draft, { status: 201 });
   } catch (error) {
     console.error('Draft creation error:', error);
     return NextResponse.json(
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ drafts });
+    return NextResponse.json(drafts);
   } catch (error) {
     console.error('Draft fetch error:', error);
     return NextResponse.json(

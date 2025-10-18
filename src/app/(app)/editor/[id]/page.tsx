@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button, TextArea, Card, Loading, Input } from '@/components/ui';
 import { useDraftStore, useUIStore } from '@/store';
 import { api } from '@/lib/api-client';
-import { BatchCustomizeModal } from '@/components/batch-customize';
+// import { BatchCustomizeModal } from '@/components/batch-customize';
 
 interface AIFeedback {
   overall: string;
@@ -41,15 +41,53 @@ export default function EditorPage() {
   // UI State
   const [promptExpanded, setPromptExpanded] = useState(false);
   const [feedbackTab, setFeedbackTab] = useState<'overview' | 'principles' | 'comments'>('overview');
-  const [viewMode, setViewMode] = useState<ViewMode>('original');
-  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  // const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+
+  const loadDraft = useCallback(async () => {
+    console.log('loadDraft called with draftId:', draftId);
+    if (!draftId) {
+      console.log('No draftId, returning');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log('Fetching draft:', draftId);
+      const response = await api.drafts.get(draftId);
+      console.log('Draft response:', response);
+
+      if (response.error) {
+        addToast({ type: 'error', message: response.error });
+        router.push('/dashboard');
+      } else if (response.data) {
+        const draft = response.data;
+        console.log('Setting draft data:', draft);
+        setCurrentDraft(draft);
+        setDraftName(draft.name || '');
+        setPromptText(draft.promptText || '');
+        setContent(draft.content || '');
+        setHasUnsavedChanges(false);
+      }
+    } catch (error: any) {
+      console.error('Load draft error:', error);
+      addToast({ type: 'error', message: error.message || 'Failed to load draft' });
+      router.push('/dashboard');
+    } finally {
+      setIsLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftId]);
+
   useEffect(() => {
+    console.log('Editor useEffect called - status:', status, 'draftId:', draftId);
     if (status === 'unauthenticated') {
       router.push('/login');
     } else if (status === 'authenticated' && draftId) {
+      console.log('Calling loadDraft from useEffect');
       loadDraft();
     }
-  }, [status, draftId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, draftId, loadDraft]);
 
   useEffect(() => {
     // Update word count
@@ -69,30 +107,6 @@ export default function EditorPage() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
-
-  const loadDraft = async () => {
-    setIsLoading(true);
-    try {
-      const response = await api.drafts.getById(draftId);
-
-      if (response.error) {
-        addToast({ type: 'error', message: response.error });
-        router.push('/dashboard');
-      } else if (response.data) {
-        const draft = response.data;
-        setCurrentDraft(draft);
-        setDraftName(draft.name || '');
-        setPromptText(draft.promptText || '');
-        setContent(draft.content || '');
-        setHasUnsavedChanges(false);
-      }
-    } catch (error: any) {
-      addToast({ type: 'error', message: error.message || 'Failed to load draft' });
-      router.push('/dashboard');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -229,7 +243,7 @@ export default function EditorPage() {
             >
               Save
             </Button>
-            <Button
+            {/* <Button
               variant="outline"
               onClick={() => setIsBatchModalOpen(true)}
               className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 border-none"
@@ -243,7 +257,7 @@ export default function EditorPage() {
                 />
               </svg>
               Customize for Schools
-            </Button>
+            </Button> */}
             <Button onClick={handleGetAIFeedback} isLoading={isGenerating}>
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -416,12 +430,12 @@ export default function EditorPage() {
       </div>
 
       {/* Batch Customization Modal */}
-      <BatchCustomizeModal
+      {/* <BatchCustomizeModal
         isOpen={isBatchModalOpen}
         onClose={() => setIsBatchModalOpen(false)}
         essay={content}
         draftId={draftId}
-      />
+      /> */}
     </div>
   );
 }

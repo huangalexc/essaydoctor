@@ -4,15 +4,16 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
 const updateDraftSchema = z.object({
-  content: z.string().optional(),
   name: z.string().optional(),
-  tag: z.enum(['IN_PROGRESS', 'FINAL', 'REVIEW', 'ARCHIVED']).optional(),
   promptText: z.string().optional(),
+  content: z.string().optional(),
+  tag: z.enum(['IN_PROGRESS', 'REVIEW', 'FINAL']).optional(),
+  wordCount: z.number().optional(),
 });
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
@@ -22,11 +23,14 @@ export async function GET(
     }
 
     const userId = session.user.id;
-    const { id } = params;
+    const { id: draftId } = await params;
 
-    // Get draft with versions
-    const draft = await prisma.draft.findUnique({
-      where: { id },
+    // Get draft
+    const draft = await prisma.draft.findFirst({
+      where: {
+        id: draftId,
+        userId,
+      },
       include: {
         versions: {
           orderBy: {
@@ -40,12 +44,7 @@ export async function GET(
       return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
     }
 
-    // Check ownership
-    if (draft.userId !== userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    return NextResponse.json({ draft });
+    return NextResponse.json(draft);
   } catch (error) {
     console.error('Draft fetch error:', error);
     return NextResponse.json(
@@ -57,7 +56,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
@@ -67,7 +66,7 @@ export async function PUT(
     }
 
     const userId = session.user.id;
-    const { id } = params;
+    const { id: draftId } = await params;
 
     // Parse and validate request body
     const body = await request.json();
@@ -75,16 +74,49 @@ export async function PUT(
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: validation.error.errors[0].message },
+        { error: validation.error.errors[0]?.message || 'Invalid request data' },
         { status: 400 }
       );
     }
 
-    const updates = validation.data;
+    // Check if draft exists and belongs to user
+    const existingDraft = await prisma.draft.findFirst({
+      where: {
+        id: draftId,
+        userId,
+      },
+    });
 
-    // Get existing draft
-    const existingDraft = await prisma.draft.findUnique({
-      where: { id },
+    if (!existingDraft) {
+      return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
+    }
+
+    const updateData: any = {};
+
+    if (validation.data.name !== undefined) {
+      updateData.name = validation.data.name;
+    }
+
+    if (validation.data.promptText !== undefined) {
+      updateData.promptText = validation.data.promptText;
+    }
+
+    if (validation.data.content !== undefined) {
+      updateData.content = validation.data.content;
+      // Recalculate word count if content is updated
+      updateData.wordCount = validation.data.content.trim()
+        ? validation.data.content.trim().split(/\s+/).filter(Boolean).length
+        : 0;
+    }
+
+    if (validation.data.tag !== undefined) {
+      updateData.tag = validation.data.tag;
+    }
+
+    // Update draft
+    const updatedDraft = await prisma.draft.update({
+      where: { id: draftId },
+      data: updateData,
       include: {
         versions: {
           orderBy: {
@@ -95,62 +127,7 @@ export async function PUT(
       },
     });
 
-    if (!existingDraft) {
-      return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
-    }
-
-    // Check ownership
-    if (existingDraft.userId !== userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Prepare update data
-    const updateData: any = {};
-
-    if (updates.name !== undefined) {
-      updateData.name = updates.name;
-    }
-
-    if (updates.tag !== undefined) {
-      updateData.tag = updates.tag;
-    }
-
-    if (updates.promptText !== undefined) {
-      updateData.promptText = updates.promptText;
-    }
-
-    // If content is being updated, create a new version
-    if (updates.content !== undefined && updates.content !== existingDraft.content) {
-      const wordCount = updates.content.trim().split(/\s+/).filter(Boolean).length;
-      updateData.content = updates.content;
-      updateData.wordCount = wordCount;
-
-      const latestVersionNumber = existingDraft.versions[0]?.versionNumber || 0;
-
-      await prisma.draftVersion.create({
-        data: {
-          draftId: id,
-          content: updates.content,
-          versionNumber: latestVersionNumber + 1,
-          changes: 'Manual edit',
-        },
-      });
-    }
-
-    // Update draft
-    const updatedDraft = await prisma.draft.update({
-      where: { id },
-      data: updateData,
-      include: {
-        versions: {
-          orderBy: {
-            versionNumber: 'desc',
-          },
-        },
-      },
-    });
-
-    return NextResponse.json({ draft: updatedDraft });
+    return NextResponse.json(updatedDraft);
   } catch (error) {
     console.error('Draft update error:', error);
     return NextResponse.json(
@@ -162,7 +139,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
@@ -172,28 +149,26 @@ export async function DELETE(
     }
 
     const userId = session.user.id;
-    const { id } = params;
+    const { id: draftId } = await params;
 
-    // Get draft
-    const draft = await prisma.draft.findUnique({
-      where: { id },
+    // Check if draft exists and belongs to user
+    const existingDraft = await prisma.draft.findFirst({
+      where: {
+        id: draftId,
+        userId,
+      },
     });
 
-    if (!draft) {
+    if (!existingDraft) {
       return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
     }
 
-    // Check ownership
-    if (draft.userId !== userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Delete draft (versions will be cascade deleted)
+    // Delete draft (cascade will delete versions)
     await prisma.draft.delete({
-      where: { id },
+      where: { id: draftId },
     });
 
-    return NextResponse.json({ message: 'Draft deleted successfully' });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Draft deletion error:', error);
     return NextResponse.json(

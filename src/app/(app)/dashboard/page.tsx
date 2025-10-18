@@ -73,12 +73,23 @@ export default function DashboardPage() {
         name: 'Untitled Draft',
       });
 
+      console.log('Draft creation response:', response);
+
       if (response.error) {
         addToast({ type: 'error', message: response.error });
       } else if (response.data) {
-        router.push(`/editor/${response.data.id}`);
+        console.log('Draft ID:', response.data.id);
+        if (response.data.id) {
+          router.push(`/editor/${response.data.id}`);
+        } else {
+          addToast({ type: 'error', message: 'Draft created but ID is missing' });
+          console.error('Draft data:', response.data);
+        }
+      } else {
+        addToast({ type: 'error', message: 'No data returned from API' });
       }
     } catch (error: any) {
+      console.error('Draft creation error:', error);
       addToast({ type: 'error', message: error.message || 'Failed to create draft' });
     }
   };

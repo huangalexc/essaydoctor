@@ -52,6 +52,16 @@ const toastStyles = {
 
 export const ToastContainer: React.FC = () => {
   const { toasts, removeToast } = useUIStore();
+  const [mounted, setMounted] = React.useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Don't render on server to avoid hydration mismatch
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
