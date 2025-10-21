@@ -1,63 +1,28 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
-  // previewFeatures = ["postgresqlExtensions"]  // Commented out - pgvector optional for now
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions", "typedSql"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  // extensions = [vector]  // Commented out - pgvector optional for now
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
-
-// User roles
-enum UserRole {
-  ADMIN
-  MEMBER
-}
-
-// Subscription tiers
-enum SubscriptionTier {
-  FREE
-  PLUS
-  PRO
-}
-
-// Subscription status
-enum SubscriptionStatus {
-  ACTIVE
-  CANCELLED
-  EXPIRED
-}
-
-// Draft tags
-enum DraftTag {
-  IN_PROGRESS
-  FINAL
-  REVIEW
-  ARCHIVED
-}
-
-// ============ USER & AUTH MODELS ============
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  emailVerified DateTime?
+  id             String          @id @default(cuid())
+  email          String          @unique
+  emailVerified  DateTime?
   hashedPassword String?
-  role          UserRole  @default(MEMBER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  // Relations
-  subscription    Subscription?
-  drafts          Draft[]
-  usageTracking   UsageTracking[]
-  tokens          Token[]
-  customizations  Customization[]
+  role           UserRole        @default(MEMBER)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  customizations Customization[]
+  drafts         Draft[]
+  subscription   Subscription?
+  tokens         Token[]
+  usageTracking  UsageTracking[]
 
   @@map("users")
 }
@@ -66,11 +31,10 @@ model Token {
   id        String   @id @default(cuid())
   userId    String
   token     String   @unique
-  type      String   // EMAIL_VERIFY, PASSWORD_RESET
+  type      String
   expiresAt DateTime
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([token])
@@ -78,22 +42,19 @@ model Token {
   @@map("tokens")
 }
 
-// ============ SUBSCRIPTION & TIER MODELS ============
-
 model Subscription {
-  id              String             @id @default(cuid())
-  userId          String             @unique
-  tier            SubscriptionTier   @default(FREE)
-  status          SubscriptionStatus @default(ACTIVE)
-  stripeCustomerId String?           @unique
-  stripeSubscriptionId String?       @unique
-  currentPeriodStart DateTime?
-  currentPeriodEnd   DateTime?
-  cancelAtPeriodEnd  Boolean         @default(false)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  tier                 SubscriptionTier   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([stripeCustomerId])
@@ -102,17 +63,16 @@ model Subscription {
 }
 
 model UsageTracking {
-  id                    String   @id @default(cuid())
-  userId                String
-  aiEditsCount          Int      @default(0)
-  customizationsCount   Int      @default(0)
-  schoolFetchesCount    Int      @default(0)
-  periodStart           DateTime @default(now())
-  periodEnd             DateTime
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String   @id @default(cuid())
+  userId              String
+  aiEditsCount        Int      @default(0)
+  customizationsCount Int      @default(0)
+  schoolFetchesCount  Int      @default(0)
+  periodStart         DateTime @default(now())
+  periodEnd           DateTime
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([periodStart])
@@ -120,22 +80,19 @@ model UsageTracking {
   @@map("usage_tracking")
 }
 
-// ============ DRAFT MODELS ============
-
 model Draft {
-  id           String    @id @default(cuid())
-  userId       String
-  name         String?
-  promptText   String?   @db.Text
-  content      String    @db.Text
-  wordCount    Int
-  tag          DraftTag  @default(IN_PROGRESS)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  versions       DraftVersion[]
+  id             String          @id @default(cuid())
+  userId         String
+  name           String?
+  promptText     String?         @db.Text
+  content        String          @db.Text
+  wordCount      Int
+  tag            DraftTag        @default(IN_PROGRESS)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   customizations Customization[]
+  versions       DraftVersion[]
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([tag])
@@ -144,14 +101,13 @@ model Draft {
 }
 
 model DraftVersion {
-  id           String   @id @default(cuid())
-  draftId      String
-  content      String   @db.Text
+  id            String   @id @default(cuid())
+  draftId       String
+  content       String   @db.Text
   versionNumber Int
-  changes      String?  @db.Text // JSON description of changes
-  createdAt    DateTime @default(now())
-
-  draft Draft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  changes       String?  @db.Text // JSON description of changes
+  createdAt     DateTime @default(now())
+  draft         Draft    @relation(fields: [draftId], references: [id], onDelete: Cascade)
 
   @@unique([draftId, versionNumber])
   @@index([draftId])
@@ -159,21 +115,25 @@ model DraftVersion {
   @@map("draft_versions")
 }
 
-// ============ SCHOOL KNOWLEDGE MODELS ============
-
 model SchoolMajorData {
-  id                String   @id @default(cuid())
-  schoolName        String
-  majorName         String
-  programDescription String  @db.Text
-  keyFeatures       String[] // Array of key features
-  keywords          String[] // Array of keywords for matching
-  // embedding         Unsupported("vector(1536)")?  // TODO: Add pgvector when available - using keyword matching for now
-  sourceUrl         String?
-  lastUpdated       DateTime @default(now())
-  freshness         Boolean  @default(true) // Auto-set to false after 90 days
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                  String    @id @default(cuid())
+  schoolName          String
+  majorName           String
+  programDescription  String    @db.Text
+  keyFeatures         String[]
+  keywords            String[]  // Keep for hybrid search fallback
+
+  // Vector embedding for semantic search
+  embedding           Unsupported("vector(1536)")?
+  embeddingModel      String?   @default("text-embedding-3-large")
+  embeddingVersion    Int?      @default(1)
+  lastEmbeddingUpdate DateTime?
+
+  sourceUrl           String?
+  lastUpdated         DateTime  @default(now())
+  freshness           Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@unique([schoolName, majorName])
   @@index([schoolName])
@@ -183,8 +143,6 @@ model SchoolMajorData {
   @@index([freshness])
   @@map("school_major_data")
 }
-
-// ============ CUSTOMIZATION MODELS ============
 
 model Customization {
   id                       String   @id @default(cuid())
@@ -219,4 +177,28 @@ model Customization {
   @@index([createdAt])
   @@index([meetsWordLimit])
   @@map("customizations")
+}
+
+enum UserRole {
+  ADMIN
+  MEMBER
+}
+
+enum SubscriptionTier {
+  FREE
+  PLUS
+  PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+enum DraftTag {
+  IN_PROGRESS
+  FINAL
+  REVIEW
+  ARCHIVED
 }
