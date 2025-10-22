@@ -51,3 +51,35 @@ export {
   type HybridSearchResult,
   type KeywordSearchResult,
 } from './hybrid-search';
+
+// Index management and optimization
+export {
+  getIndexStats,
+  hasHNSWIndex,
+  getIndexBuildProgress,
+  createHNSWIndex,
+  dropHNSWIndex,
+  rebuildHNSWIndex,
+  analyzeTable,
+  vacuumTable,
+  setHNSWSearchQuality,
+  getIndexHealthReport,
+  type IndexStats,
+  type IndexBuildProgress,
+} from './index-management';
+
+// Monitoring and observability
+export {
+  recordSearchMetric,
+  recordCacheAccess,
+  getCacheStatistics,
+  resetCacheStats,
+  getSearchPerformanceStats,
+  getSlowestQueries,
+  getSystemHealth,
+  clearMetrics,
+  exportMetricsForMonitoring,
+  type SearchMetrics,
+  type CacheStats,
+  type SystemHealth,
+} from './monitoring';

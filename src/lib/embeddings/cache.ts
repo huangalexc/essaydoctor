@@ -90,6 +90,13 @@ export async function getCachedEmbedding(text: string): Promise<number[] | null>
   const memCached = memoryCache.get(cacheKey);
   if (memCached) {
     console.log('[Embedding Cache] Memory cache hit');
+    // Record metric (lazy import to avoid circular dependency)
+    try {
+      const { recordCacheAccess } = await import('./monitoring');
+      recordCacheAccess(true, 'memory');
+    } catch {
+      // Monitoring optional
+    }
     return memCached;
   }
 
@@ -100,6 +107,13 @@ export async function getCachedEmbedding(text: string): Promise<number[] | null>
       console.log('[Embedding Cache] Redis cache hit');
       // Populate memory cache for next time
       memoryCache.set(cacheKey, redisCached);
+      // Record metric
+      try {
+        const { recordCacheAccess } = await import('./monitoring');
+        recordCacheAccess(true, 'redis');
+      } catch {
+        // Monitoring optional
+      }
       return redisCached;
     }
   } catch (error) {
@@ -108,6 +122,13 @@ export async function getCachedEmbedding(text: string): Promise<number[] | null>
   }
 
   console.log('[Embedding Cache] Cache miss');
+  // Record miss
+  try {
+    const { recordCacheAccess } = await import('./monitoring');
+    recordCacheAccess(false, 'memory');
+  } catch {
+    // Monitoring optional
+  }
   return null;
 }
 
