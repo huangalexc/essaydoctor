@@ -163,75 +163,6 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Subscription Banner */}
-        {usageStats.tier === 'FREE' && (
-          <Card className="p-6 mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Unlock Unlimited Access
-                  </h3>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Upgrade to Plus or Pro for unlimited AI edits, unlimited drafts, and school-specific customization
-                </p>
-              </div>
-              <Button onClick={() => router.push('/pricing')} className="whitespace-nowrap">
-                View Plans
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {usageStats.tier !== 'FREE' && (
-          <Card className="p-6 mb-8">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {usageStats.tier} Plan
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      You have full access to all {usageStats.tier === 'PLUS' ? 'Plus' : 'Pro'} features
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                {usageStats.tier === 'PLUS' && (
-                  <Button variant="outline" onClick={() => router.push('/pricing')}>
-                    Upgrade to Pro
-                  </Button>
-                )}
-                <Button variant="outline" onClick={async () => {
-                  try {
-                    const response = await api.subscriptions.getPortalUrl();
-                    if (response.data?.url) {
-                      window.location.href = response.data.url;
-                    } else {
-                      addToast({ type: 'error', message: 'Failed to open billing portal' });
-                    }
-                  } catch (error: any) {
-                    addToast({ type: 'error', message: error.message });
-                  }
-                }}>
-                  Manage Subscription
-                </Button>
-              </div>
-            </div>
-          </Card>
-        )}
-
         {/* Usage Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="p-6">
@@ -289,7 +220,7 @@ export default function DashboardPage() {
           </Card>
 
           <Card className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Current Plan</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
@@ -312,6 +243,47 @@ export default function DashboardPage() {
                 </svg>
               </div>
             </div>
+            {usageStats.tier === 'FREE' ? (
+              <Button
+                size="sm"
+                className="w-full"
+                onClick={() => router.push('/pricing')}
+              >
+                Upgrade Plan
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                {usageStats.tier === 'PLUS' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => router.push('/pricing')}
+                  >
+                    Upgrade to Pro
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className={usageStats.tier === 'PLUS' ? 'flex-1' : 'w-full'}
+                  onClick={async () => {
+                    try {
+                      const response = await api.subscriptions.getPortalUrl();
+                      if (response.data?.url) {
+                        window.location.href = response.data.url;
+                      } else {
+                        addToast({ type: 'error', message: 'Failed to open billing portal' });
+                      }
+                    } catch (error: any) {
+                      addToast({ type: 'error', message: error.message });
+                    }
+                  }}
+                >
+                  Manage
+                </Button>
+              </div>
+            )}
           </Card>
         </div>
 
