@@ -5,6 +5,7 @@ import { generateRewritePrompt } from '@/lib/essay-principles';
 import { rateLimit } from '@/lib/redis';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
+import { guardAgainstInjection } from '@/lib/security/prompt-injection-guard';
 
 const rewriteSchema = z.object({
   essay: z.string().min(50, 'Essay must be at least 50 characters'),
@@ -34,6 +35,49 @@ export async function POST(request: NextRequest) {
 
     const { essay, prompt, focusAreas, wordLimit } = validation.data;
     const userId = session.user.id;
+
+    // Check essay for prompt injection
+    const essayGuard = guardAgainstInjection(essay, {
+      userId,
+      endpoint: '/api/essays/rewrite',
+      maxLength: 15000,
+      autoSanitize: true,
+      blockOnSeverity: 'critical',
+    });
+
+    if (!essayGuard.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Content security check failed',
+          reason: essayGuard.reason,
+          severity: essayGuard.result.severity,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check prompt for injection
+    const promptGuard = guardAgainstInjection(prompt, {
+      userId,
+      endpoint: '/api/essays/rewrite',
+      maxLength: 1000,
+      autoSanitize: true,
+      blockOnSeverity: 'critical',
+    });
+
+    if (!promptGuard.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Prompt security check failed',
+          reason: promptGuard.reason,
+          severity: promptGuard.result.severity,
+        },
+        { status: 400 }
+      );
+    }
+
+    const safeEssay = essayGuard.sanitizedContent || essay;
+    const safePrompt = promptGuard.sanitizedContent || prompt;
 
     // Check rate limit
     const limit = await rateLimit.check(`ai:rewrite:${userId}`, 5, 3600); // 5 per hour
@@ -78,7 +122,11 @@ export async function POST(request: NextRequest) {
 
     // Generate AI rewrite
     const startTime = Date.now();
-    const rewritePrompt = generateRewritePrompt(essay, prompt, focusAreas, wordLimit);
+    const rewritePrompt = generateRewritePrompt(safeEssay, safePrompt, focusAreas, wordLimit);
+
+    console.log('[REWRITE] Starting AI rewrite request...');
+    console.log('[REWRITE] Focus areas:', focusAreas);
+    console.log('[REWRITE] Word limit:', wordLimit);
 
     const rewriteText = await generateCompletion(rewritePrompt, {
       model: 'gpt-4-turbo-preview',
@@ -88,6 +136,9 @@ export async function POST(request: NextRequest) {
     });
 
     const responseTime = Date.now() - startTime;
+    console.log(`[REWRITE] AI response received in ${responseTime}ms`);
+    console.log('[REWRITE] Raw response length:', rewriteText.length);
+    console.log('[REWRITE] First 200 chars:', rewriteText.substring(0, 200));
 
     // Parse the rewrite response
     // Expected format:
@@ -108,13 +159,22 @@ export async function POST(request: NextRequest) {
     let currentSection = '';
 
     for (const line of rewriteLines) {
-      if (line.startsWith('## Rewritten Essay')) {
+      // Handle both "## Rewritten Essay" and "Rewritten Essay:" formats
+      const trimmedLine = line.trim();
+
+      if (trimmedLine.match(/^#{0,2}\s*Rewritten Essay:?/i)) {
         currentSection = 'essay';
-      } else if (line.startsWith('## Key Changes')) {
+        continue; // Skip the header line itself
+      } else if (trimmedLine.match(/^#{0,2}\s*Key Changes( Made)?:?/i)) {
         currentSection = 'changes';
-      } else if (line.startsWith('## Rationale')) {
+        continue; // Skip the header line itself
+      } else if (trimmedLine.match(/^#{0,2}\s*Rationale:?/i)) {
         currentSection = 'rationale';
-      } else if (line.trim()) {
+        continue; // Skip the header line itself
+      }
+
+      // Process content based on current section
+      if (line.trim()) {
         if (currentSection === 'essay') {
           sections.rewrittenEssay += line + '\n';
         } else if (currentSection === 'changes' && line.startsWith('-')) {
@@ -124,6 +184,12 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    // Log parsed sections
+    console.log('[REWRITE] Parsed sections:');
+    console.log('[REWRITE]   - Rewritten essay length:', sections.rewrittenEssay.length);
+    console.log('[REWRITE]   - Key changes count:', sections.keyChanges.length);
+    console.log('[REWRITE]   - Rationale length:', sections.rationale.length);
 
     // Update usage tracking
     if (usage) {
@@ -138,13 +204,17 @@ export async function POST(request: NextRequest) {
       console.warn(`AI rewrite took ${responseTime}ms - exceeds 10s target`);
     }
 
-    return NextResponse.json({
+    const responseData = {
       rewrittenEssay: sections.rewrittenEssay.trim(),
       keyChanges: sections.keyChanges,
       rationale: sections.rationale.trim(),
       responseTime,
       remainingRewrites: tier === 'FREE' ? tierLimits.FREE - (usage?.aiEditsCount || 0) - 1 : 'unlimited',
-    });
+    };
+
+    console.log('[REWRITE] Sending response with rewritten essay length:', responseData.rewrittenEssay.length);
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Essay rewrite error:', error);
     return NextResponse.json(

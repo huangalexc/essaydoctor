@@ -6,6 +6,7 @@ import { rateLimit, cache } from '@/lib/redis';
 import { CacheKeys } from '@/lib/cache-keys';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
+import { guardAgainstInjection } from '@/lib/security/prompt-injection-guard';
 
 const customizeSchema = z.object({
   essay: z.string().min(50, 'Essay must be at least 50 characters'),
@@ -34,6 +35,28 @@ export async function POST(request: NextRequest) {
 
     const { essay, schoolName, majorName } = validation.data;
     const userId = session.user.id;
+
+    // Check essay for prompt injection
+    const essayGuard = guardAgainstInjection(essay, {
+      userId,
+      endpoint: '/api/essays/customize',
+      maxLength: 15000,
+      autoSanitize: true,
+      blockOnSeverity: 'critical',
+    });
+
+    if (!essayGuard.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Content security check failed',
+          reason: essayGuard.reason,
+          severity: essayGuard.result.severity,
+        },
+        { status: 400 }
+      );
+    }
+
+    const safeEssay = essayGuard.sanitizedContent || essay;
 
     // Check rate limit
     const limit = await rateLimit.check(`ai:customize:${userId}`, 20, 3600); // 20 per hour
@@ -105,7 +128,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate customized essay
-    const customizationPrompt = generateCustomizationPrompt(essay, schoolName, majorName, {
+    const customizationPrompt = generateCustomizationPrompt(safeEssay, schoolName, majorName, {
       programDescription: schoolData.programDescription,
       keyFeatures: schoolData.keyFeatures,
       keywords: schoolData.keywords,

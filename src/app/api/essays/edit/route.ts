@@ -6,6 +6,7 @@ import { rateLimit } from '@/lib/redis';
 import { useUsageStore } from '@/store';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
+import { guardAgainstInjection } from '@/lib/security/prompt-injection-guard';
 
 const editSchema = z.object({
   essay: z.string().min(50, 'Essay must be at least 50 characters'),
@@ -33,6 +34,50 @@ export async function POST(request: NextRequest) {
 
     const { essay, prompt } = validation.data;
     const userId = session.user.id;
+
+    // Check essay for prompt injection
+    const essayGuard = guardAgainstInjection(essay, {
+      userId,
+      endpoint: '/api/essays/edit',
+      maxLength: 15000,
+      autoSanitize: true,
+      blockOnSeverity: 'critical',
+    });
+
+    if (!essayGuard.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Content security check failed',
+          reason: essayGuard.reason,
+          severity: essayGuard.result.severity,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check prompt for injection
+    const promptGuard = guardAgainstInjection(prompt, {
+      userId,
+      endpoint: '/api/essays/edit',
+      maxLength: 1000,
+      autoSanitize: true,
+      blockOnSeverity: 'critical',
+    });
+
+    if (!promptGuard.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Prompt security check failed',
+          reason: promptGuard.reason,
+          severity: promptGuard.result.severity,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Use sanitized content if available
+    const safeEssay = essayGuard.sanitizedContent || essay;
+    const safePrompt = promptGuard.sanitizedContent || prompt;
 
     // Check rate limit
     const limit = await rateLimit.check(`ai:edit:${userId}`, 10, 3600); // 10 per hour
@@ -77,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     // Generate AI feedback in JSON format
     const startTime = Date.now();
-    const evaluationPrompt = generateEssayEvaluationPrompt(essay, prompt, 'json');
+    const evaluationPrompt = generateEssayEvaluationPrompt(safeEssay, safePrompt, 'json');
 
     const feedbackText = await generateCompletion(evaluationPrompt, {
       model: 'gpt-4-turbo-preview',
