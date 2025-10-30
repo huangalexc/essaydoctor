@@ -25,9 +25,14 @@ const createAxiosInstance = (): AxiosInstance => {
   // Request interceptor - add auth token
   instance.interceptors.request.use(
     async (config) => {
-      const session = await getSession();
-      if (session?.user) {
-        config.headers.Authorization = `Bearer ${session.user.id}`;
+      try {
+        const session = await getSession();
+        if (session?.user) {
+          config.headers.Authorization = `Bearer ${session.user.id}`;
+        }
+      } catch (error) {
+        // Silently fail if session fetch fails (likely on server-side)
+        console.error('Failed to get session for API request:', error);
       }
       return config;
     },

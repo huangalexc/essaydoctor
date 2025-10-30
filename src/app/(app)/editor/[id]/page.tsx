@@ -192,6 +192,8 @@ export default function EditorPage() {
         wordLimit = parseInt(wordLimitMatch[1]);
       }
 
+      console.log('[CLIENT] Calling rewrite API with:', { focusAreas, wordLimit, essayLength: content.length });
+
       const response = await api.essays.rewrite({
         essay: content,
         prompt: promptText,
@@ -199,9 +201,17 @@ export default function EditorPage() {
         wordLimit,
       });
 
+      console.log('[CLIENT] Rewrite API response:', response);
+
       if (response.error) {
+        console.error('[CLIENT] Rewrite error:', response.error);
         addToast({ type: 'error', message: response.error });
       } else if (response.data) {
+        console.log('[CLIENT] Rewrite data:', {
+          rewrittenEssayLength: response.data.rewrittenEssay?.length || 0,
+          keyChangesCount: response.data.keyChanges?.length || 0,
+          rationaleLength: response.data.rationale?.length || 0,
+        });
         setRewriteResult({
           rewrittenEssay: response.data.rewrittenEssay,
           keyChanges: response.data.keyChanges || [],
@@ -209,6 +219,9 @@ export default function EditorPage() {
         });
         setViewMode('comparison');
         addToast({ type: 'success', message: 'Essay rewritten successfully!' });
+      } else {
+        console.error('[CLIENT] No error and no data in response');
+        addToast({ type: 'error', message: 'No rewritten essay received from server' });
       }
     } catch (error: any) {
       addToast({ type: 'error', message: error.message || 'Failed to rewrite essay' });

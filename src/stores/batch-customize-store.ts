@@ -10,6 +10,16 @@ export type SchoolStatus = {
   error?: string;
   responseTime?: number;
   wordCount?: number;
+  metadata?: {
+    changesSummary: Array<{
+      location: string;
+      change: string;
+      reason: string;
+    }>;
+    integrationNotes: string;
+    changeCount: number;
+    preservationPercentage: number;
+  };
 };
 
 type BatchCustomizeStore = {

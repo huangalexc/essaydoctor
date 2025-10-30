@@ -1,13 +1,53 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Input, Button, Card } from '@/components/ui';
 import { useBatchCustomizeStore } from '@/stores/batch-customize-store';
+import { UNIVERSITIES } from '@/data/universities';
+import { ALL_MAJORS, MAJOR_CATEGORIES } from '@/data/majors';
 
 export function SchoolSelector() {
   const { schools, addSchool, removeSchool } = useBatchCustomizeStore();
   const [schoolName, setSchoolName] = useState('');
   const [majorName, setMajorName] = useState('');
+  const [schoolSearch, setSchoolSearch] = useState('');
+  const [majorSearch, setMajorSearch] = useState('');
+  const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
+  const [showMajorDropdown, setShowMajorDropdown] = useState(false);
+
+  const schoolRef = useRef<HTMLDivElement>(null);
+  const majorRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (schoolRef.current && !schoolRef.current.contains(event.target as Node)) {
+        setShowSchoolDropdown(false);
+      }
+      if (majorRef.current && !majorRef.current.contains(event.target as Node)) {
+        setShowMajorDropdown(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filter schools based on search
+  const filteredSchools = useMemo(() => {
+    if (!schoolSearch) return UNIVERSITIES.slice(0, 50); // Show first 50 by default
+    return UNIVERSITIES.filter((school) =>
+      school.toLowerCase().includes(schoolSearch.toLowerCase())
+    ).slice(0, 50);
+  }, [schoolSearch]);
+
+  // Filter majors based on search
+  const filteredMajors = useMemo(() => {
+    if (!majorSearch) return ALL_MAJORS.slice(0, 50); // Show first 50 by default
+    return ALL_MAJORS.filter((major) =>
+      major.toLowerCase().includes(majorSearch.toLowerCase())
+    ).slice(0, 50);
+  }, [majorSearch]);
 
   const handleAddSchool = () => {
     if (!schoolName.trim() || !majorName.trim()) {
@@ -35,6 +75,10 @@ export function SchoolSelector() {
     // Clear inputs
     setSchoolName('');
     setMajorName('');
+    setSchoolSearch('');
+    setMajorSearch('');
+    setShowSchoolDropdown(false);
+    setShowMajorDropdown(false);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -44,6 +88,18 @@ export function SchoolSelector() {
     }
   };
 
+  const handleSchoolSelect = (school: string) => {
+    setSchoolName(school);
+    setSchoolSearch(school);
+    setShowSchoolDropdown(false);
+  };
+
+  const handleMajorSelect = (major: string) => {
+    setMajorName(major);
+    setMajorSearch(major);
+    setShowMajorDropdown(false);
+  };
+
   return (
     <Card className="p-4 space-y-4">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -51,21 +107,70 @@ export function SchoolSelector() {
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Input
-          type="text"
-          placeholder="School Name (e.g., MIT, Stanford)"
-          value={schoolName}
-          onChange={(e) => setSchoolName(e.target.value)}
-          onKeyPress={handleKeyPress}
-        />
-        <Input
-          type="text"
-          placeholder="Major (e.g., Computer Science)"
-          value={majorName}
-          onChange={(e) => setMajorName(e.target.value)}
-          onKeyPress={handleKeyPress}
-        />
+        {/* School Selector */}
+        <div className="relative" ref={schoolRef}>
+          <Input
+            type="text"
+            placeholder="Search for a school..."
+            value={schoolSearch}
+            onChange={(e) => {
+              setSchoolSearch(e.target.value);
+              setShowSchoolDropdown(true);
+            }}
+            onFocus={() => setShowSchoolDropdown(true)}
+            onKeyPress={handleKeyPress}
+          />
+          {showSchoolDropdown && filteredSchools.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {filteredSchools.map((school) => (
+                <button
+                  key={school}
+                  type="button"
+                  onClick={() => handleSchoolSelect(school)}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-900 dark:text-white transition-colors"
+                >
+                  {school}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Major Selector */}
+        <div className="relative" ref={majorRef}>
+          <Input
+            type="text"
+            placeholder="Search for a major..."
+            value={majorSearch}
+            onChange={(e) => {
+              setMajorSearch(e.target.value);
+              setShowMajorDropdown(true);
+            }}
+            onFocus={() => setShowMajorDropdown(true)}
+            onKeyPress={handleKeyPress}
+          />
+          {showMajorDropdown && filteredMajors.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {filteredMajors.map((major) => (
+                <button
+                  key={major}
+                  type="button"
+                  onClick={() => handleMajorSelect(major)}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-900 dark:text-white transition-colors"
+                >
+                  {major}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      {schoolName && majorName && (
+        <div className="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
+          Selected: <span className="font-medium">{schoolName}</span> - <span className="font-medium">{majorName}</span>
+        </div>
+      )}
 
       <Button onClick={handleAddSchool} size="sm" variant="outline" className="w-full md:w-auto">
         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

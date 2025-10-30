@@ -47,9 +47,20 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
+        // Map NextAuth errors to user-friendly messages
+        let errorMessage = 'An error occurred during login';
+
+        if (result.error === 'CredentialsSignin' || result.error === 'Invalid credentials') {
+          errorMessage = 'Incorrect email or password';
+        } else if (result.error.includes('verify your email')) {
+          errorMessage = result.error;
+        } else if (result.error === 'Configuration' || result.error === 'Missing credentials') {
+          errorMessage = 'Incorrect email or password';
+        }
+
         addToast({
           type: 'error',
-          message: result.error,
+          message: errorMessage,
         });
       } else {
         addToast({

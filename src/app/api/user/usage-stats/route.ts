@@ -26,19 +26,33 @@ export async function GET(request: NextRequest) {
     // Get current period usage
     const now = new Date();
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    const usageTracking = await prisma.usageTracking.findFirst({
+    let usageTracking = await prisma.usageTracking.findFirst({
       where: {
         userId,
         periodStart: {
-          gte: periodStart,
+          lte: now,
         },
         periodEnd: {
-          lte: periodEnd,
+          gte: now,
         },
       },
     });
+
+    // Create usage tracking record if it doesn't exist for current period
+    if (!usageTracking) {
+      usageTracking = await prisma.usageTracking.create({
+        data: {
+          userId,
+          periodStart,
+          periodEnd,
+          aiEditsCount: 0,
+          customizationsCount: 0,
+          schoolFetchesCount: 0,
+        },
+      });
+    }
 
     // Get draft count
     const draftsCreated = await prisma.draft.count({

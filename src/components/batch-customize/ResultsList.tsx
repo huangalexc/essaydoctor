@@ -6,7 +6,8 @@ import { useBatchCustomizeStore, type SchoolStatus } from '@/stores/batch-custom
 
 export function ResultsList() {
   const { schools } = useBatchCustomizeStore();
-  const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [activeSchoolTab, setActiveSchoolTab] = useState<string | null>(null);
+  const [activeContentTab, setActiveContentTab] = useState<'essay' | 'details'>('essay');
 
   const processedSchools = schools.filter(
     (s) => s.status === 'success' || s.status === 'error'
@@ -17,11 +18,11 @@ export function ResultsList() {
   }
 
   // Set first school as active if none selected
-  if (!activeTab && processedSchools.length > 0) {
-    setActiveTab(processedSchools[0].id);
+  if (!activeSchoolTab && processedSchools.length > 0) {
+    setActiveSchoolTab(processedSchools[0].id);
   }
 
-  const activeSchool = processedSchools.find((s) => s.id === activeTab);
+  const activeSchool = processedSchools.find((s) => s.id === activeSchoolTab);
 
   return (
     <Card className="p-4 space-y-4">
@@ -29,14 +30,17 @@ export function ResultsList() {
         Customization Results
       </h3>
 
-      {/* Tabs */}
+      {/* School Tabs */}
       <div className="flex gap-2 overflow-x-auto border-b border-gray-200 dark:border-gray-700 pb-2">
         {processedSchools.map((school) => (
           <button
             key={school.id}
-            onClick={() => setActiveTab(school.id)}
+            onClick={() => {
+              setActiveSchoolTab(school.id);
+              setActiveContentTab('essay'); // Reset to essay tab when switching schools
+            }}
             className={`px-4 py-2 text-sm font-medium whitespace-nowrap rounded-t-lg transition-colors ${
-              activeTab === school.id
+              activeSchoolTab === school.id
                 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
@@ -77,17 +81,114 @@ export function ResultsList() {
 
           {activeSchool.status === 'success' && activeSchool.result && (
             <>
-              <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                <span>{activeSchool.wordCount} words</span>
-                <span>•</span>
-                <span>{activeSchool.responseTime}ms</span>
+              {/* Content Tabs */}
+              <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setActiveContentTab('essay')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeContentTab === 'essay'
+                      ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                >
+                  Customized Essay
+                </button>
+                <button
+                  onClick={() => setActiveContentTab('details')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeContentTab === 'details'
+                      ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                >
+                  Changes & Integration
+                  {activeSchool.metadata?.changeCount !== undefined && (
+                    <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded">
+                      {activeSchool.metadata.changeCount}
+                    </span>
+                  )}
+                </button>
               </div>
 
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 max-h-96 overflow-y-auto">
-                <p className="text-gray-900 dark:text-white whitespace-pre-wrap leading-relaxed">
-                  {activeSchool.result}
-                </p>
-              </div>
+              {activeContentTab === 'essay' ? (
+                <>
+                  <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                    <span>{activeSchool.wordCount} words</span>
+                    <span>•</span>
+                    <span>{activeSchool.responseTime}ms</span>
+                    {activeSchool.metadata?.preservationPercentage !== undefined && (
+                      <>
+                        <span>•</span>
+                        <span className="text-green-600 dark:text-green-400">
+                          {activeSchool.metadata.preservationPercentage}% preserved
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 max-h-96 overflow-y-auto">
+                    <p className="text-gray-900 dark:text-white whitespace-pre-wrap leading-relaxed">
+                      {activeSchool.result}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-4">
+                  {/* Changes Summary */}
+                  {activeSchool.metadata?.changesSummary && activeSchool.metadata.changesSummary.length > 0 && (
+                    <div>
+                      <h5 className="font-semibold text-gray-900 dark:text-white mb-3">
+                        Changes Made ({activeSchool.metadata.changeCount})
+                      </h5>
+                      <div className="space-y-3">
+                        {activeSchool.metadata.changesSummary.map((change, index) => (
+                          <div
+                            key={index}
+                            className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3"
+                          >
+                            <div className="flex items-start gap-2">
+                              <span className="flex-shrink-0 w-5 h-5 bg-blue-600 dark:bg-blue-500 text-white text-xs rounded-full flex items-center justify-center mt-0.5">
+                                {index + 1}
+                              </span>
+                              <div className="flex-1 space-y-1">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {change.location}
+                                </p>
+                                <p className="text-sm text-gray-700 dark:text-gray-300">
+                                  {change.change}
+                                </p>
+                                <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+                                  Reason: {change.reason}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Integration Notes */}
+                  {activeSchool.metadata?.integrationNotes && (
+                    <div>
+                      <h5 className="font-semibold text-gray-900 dark:text-white mb-2">
+                        Integration Notes
+                      </h5>
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                          {activeSchool.metadata.integrationNotes}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {!activeSchool.metadata && (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <p>No detailed metadata available for this customization.</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <Button

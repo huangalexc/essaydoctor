@@ -131,6 +131,7 @@ export function BatchCustomizeModal({
                     result: data.customizedEssay,
                     responseTime: data.responseTime,
                     wordCount: data.wordCount,
+                    metadata: data.metadata,
                   });
                   addToast({
                     type: 'success',
