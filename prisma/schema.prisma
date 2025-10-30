@@ -35,10 +35,8 @@ enum SubscriptionStatus {
 
 // Draft tags
 enum DraftTag {
-  IN_PROGRESS
+  DRAFT
   FINAL
-  REVIEW
-  ARCHIVED
 }
 
 // ============ USER & AUTH MODELS ============
@@ -129,7 +127,7 @@ model Draft {
   promptText   String?   @db.Text
   content      String    @db.Text
   wordCount    Int
-  tag          DraftTag  @default(IN_PROGRESS)
+  tag          DraftTag  @default(DRAFT)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -165,9 +163,20 @@ model SchoolMajorData {
   id                String   @id @default(cuid())
   schoolName        String
   majorName         String
+
+  // Academic information
   programDescription String  @db.Text
   keyFeatures       String[] // Array of key features
+  facultyHighlights String[] @default([])
+  researchOpportunities String[] @default([])
   keywords          String[] // Array of keywords for matching
+
+  // Campus life & extracurriculars (stored as JSON for flexibility)
+  campusLife        Json?    // { athletics: {...}, arts: {...}, clubs: [...], studentOrgs: {...}, traditions: [...] }
+
+  // Culture & values
+  culture           Json?    // { values: [...], motto: "...", distinctiveFeatures: [...], studentBody: {...} }
+
   // embedding         Unsupported("vector(1536)")?  // TODO: Add pgvector when available - using keyword matching for now
   sourceUrl         String?
   lastUpdated       DateTime @default(now())

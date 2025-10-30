@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const { drafts, setDrafts } = useDraftStore();
   const { addToast } = useUIStore();
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'in-progress' | 'final' | 'review'>('all');
+  const [filter, setFilter] = useState<'all' | 'draft' | 'final'>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent');
   const [usageStats, setUsageStats] = useState({
     aiEditsUsed: 0,
@@ -40,7 +40,8 @@ export default function DashboardPage() {
       if (draftsResponse.error) {
         addToast({ type: 'error', message: draftsResponse.error });
       } else {
-        setDrafts(draftsResponse.data?.drafts || []);
+        // API returns array directly, not wrapped in { drafts: [] }
+        setDrafts(Array.isArray(draftsResponse.data) ? draftsResponse.data : []);
       }
 
       // Load usage stats
@@ -48,7 +49,9 @@ export default function DashboardPage() {
       if (usageResponse.error) {
         addToast({ type: 'error', message: usageResponse.error });
       } else if (usageResponse.data) {
-        setUsageStats(usageResponse.data);
+        // API wraps data in { data: {...} }, so unwrap it
+        const stats = usageResponse.data.data || usageResponse.data;
+        setUsageStats(stats);
       }
     } catch (error: any) {
       addToast({ type: 'error', message: error.message || 'Failed to load dashboard data' });
@@ -261,8 +264,7 @@ export default function DashboardPage() {
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
               >
                 <option value="all">All Drafts</option>
-                <option value="in-progress">In Progress</option>
-                <option value="review">In Review</option>
+                <option value="draft">Drafts</option>
                 <option value="final">Final</option>
               </select>
 
@@ -363,12 +365,10 @@ export default function DashboardPage() {
                       className={`px-3 py-1 rounded-full ${
                         draft.tag === 'FINAL'
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : draft.tag === 'REVIEW'
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                           : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                       }`}
                     >
-                      {draft.tag || 'IN_PROGRESS'}
+                      {draft.tag === 'FINAL' ? 'Final' : 'Draft'}
                     </span>
                     <span className="text-gray-500 dark:text-gray-400">
                       {draft.wordCount || 0} words
